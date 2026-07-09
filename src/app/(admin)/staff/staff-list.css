@@ -1,0 +1,24 @@
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: var(--rounded-full);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.role-admin {
+  background-color: #e0e7ff;
+  color: #3730a3;
+}
+
+.role-instructor {
+  background-color: #ccfbf1;
+  color: #115e59;
+}
+
+.role-assistant {
+  background-color: #ffedd5;
+  color: #c2410c;
+}

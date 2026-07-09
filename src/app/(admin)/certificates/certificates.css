@@ -1,0 +1,73 @@
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.stat-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+}
+
+.list-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.student-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--rounded-full);
+  object-fit: cover;
+}
+
+.student-avatar.placeholder {
+  background-color: var(--surface-container-high);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: var(--outline);
+}
+
+.student-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: var(--rounded-full);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-pending {
+  background-color: #ffedd5;
+  color: #ea580c;
+}
+
+.status-success-light {
+  background-color: #dcfce7;
+  color: #16a34a;
+}
+
+.status-error-light {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 13px;
+  border-radius: var(--rounded-sm);
+}
+
+.text-outline { color: var(--outline); }

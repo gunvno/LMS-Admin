@@ -1,0 +1,151 @@
+.top-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.stats-row {
+  display: flex;
+  gap: 16px;
+}
+
+.stat-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  min-width: 260px;
+}
+
+.stat-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--rounded-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search-container {
+  padding: 8px;
+  background-color: var(--surface-container-lowest);
+  width: 320px;
+}
+
+.search-wrapper {
+  background-color: var(--background);
+  border-radius: var(--rounded);
+  padding: 0 12px;
+}
+
+.search-icon {
+  color: var(--outline);
+  margin-right: 8px;
+}
+
+.search-input {
+  border: none;
+  background: transparent;
+  padding: 12px 0;
+  width: 100%;
+}
+
+.search-input:focus {
+  box-shadow: none;
+}
+
+.table-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+  padding: 20px 24px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.data-table th {
+  font-family: var(--font-family-sans);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--on-surface-variant);
+  background-color: var(--surface-container-lowest);
+}
+
+.cell-flex {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.category-icon-wrapper {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--rounded);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.table-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background-color: var(--surface-container-lowest);
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.page-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--rounded);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--on-surface-variant);
+  transition: all 0.2s ease;
+}
+
+.page-btn:hover:not(.active) {
+  background-color: var(--surface-container);
+}
+
+.page-btn.active {
+  background-color: var(--primary);
+  color: var(--on-primary);
+}
+
+.page-dots {
+  color: var(--outline);
+  padding: 0 4px;
+}
+
+.uppercase { text-transform: uppercase; }
+.tracking-wide { letter-spacing: 0.05em; }

@@ -1,0 +1,29 @@
+.course-thumbnail {
+  width: 80px;
+  height: 48px;
+  border-radius: var(--rounded-sm);
+  object-fit: cover;
+}
+
+.dropdown-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.dropdown-select {
+  appearance: none;
+  padding-right: 32px;
+  background-color: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--rounded);
+  min-width: 160px;
+  cursor: pointer;
+}
+
+.dropdown-icon {
+  position: absolute;
+  right: 12px;
+  color: var(--outline);
+  pointer-events: none;
+}

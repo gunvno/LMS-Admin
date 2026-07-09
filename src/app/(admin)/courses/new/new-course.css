@@ -1,0 +1,118 @@
+.course-form-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+}
+
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.editor-container {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--rounded);
+  overflow: hidden;
+}
+
+.editor-toolbar {
+  display: flex;
+  gap: 8px;
+  padding: 8px 12px;
+  background-color: var(--surface-container-low);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.editor-btn {
+  padding: 4px 8px;
+  border-radius: var(--rounded-sm);
+  color: var(--on-surface-variant);
+  cursor: pointer;
+}
+
+.editor-btn:hover {
+  background-color: var(--surface-container-high);
+}
+
+.editor-textarea {
+  width: 100%;
+  border: none;
+  resize: vertical;
+  min-height: 200px;
+  padding: 16px;
+  font-family: inherit;
+}
+
+.editor-textarea:focus {
+  outline: none;
+}
+
+.upload-area {
+  border: 2px dashed var(--outline-variant);
+  border-radius: var(--rounded-lg);
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--surface-container-lowest);
+  transition: all 0.2s ease;
+}
+
+.upload-area:hover {
+  background-color: var(--surface-container-low);
+  border-color: var(--primary-fixed-dim);
+}
+
+.upload-icon-wrapper {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--rounded-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--primary-fixed);
+}
+
+.status-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--rounded);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.status-card:hover {
+  background-color: var(--surface-container-low);
+}
+
+.status-card.active {
+  border-color: var(--primary-fixed-dim);
+  background-color: var(--surface-container-lowest);
+  box-shadow: 0 0 0 1px var(--primary-fixed-dim);
+}
+
+.status-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.p-6 { padding: 24px; }
+.mb-6 { margin-bottom: 24px; }
+.pt-4 { padding-top: 16px; }
+.border-t { border-top: 1px solid var(--border-subtle); }
+
+
+.thumbnail-preview {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: var(--rounded);
+}
+
+.mt-4 { margin-top: 16px; }

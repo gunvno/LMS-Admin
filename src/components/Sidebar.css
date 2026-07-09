@@ -1,0 +1,172 @@
+.sidebar {
+  width: var(--sidebar-width);
+  height: 100vh;
+  background: #0f172a;
+  color: #cbd5e1;
+  border-right: 1px solid rgba(148, 163, 184, 0.18);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 100;
+}
+
+.sidebar-header {
+  min-height: 82px;
+  padding: 22px 20px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.brand-mark {
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 12px 26px rgba(37, 99, 235, 0.28);
+}
+
+.admin-info {
+  min-width: 0;
+}
+
+.admin-title {
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 750;
+  line-height: 22px;
+  margin: 0;
+}
+
+.admin-subtitle {
+  display: block;
+  margin-top: 2px;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 18px 14px;
+  overflow-y: auto;
+}
+
+.nav-section-label {
+  padding: 0 10px 8px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.nav-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nav-link {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 11px;
+  border-radius: 8px;
+  color: #cbd5e1;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background 0.16s ease, color 0.16s ease;
+}
+
+.nav-link:hover {
+  background: rgba(148, 163, 184, 0.12);
+  color: #ffffff;
+}
+
+.nav-link.active {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.nav-link.active .nav-icon {
+  color: #2563eb;
+}
+
+.nav-icon {
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.sidebar-footer {
+  padding: 16px 14px;
+  border-top: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.sidebar-account {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.account-avatar {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #1d4ed8;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.account-name {
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 18px;
+}
+
+.account-role {
+  color: #94a3b8;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.sign-out-btn {
+  width: 100%;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  color: #fecaca;
+  font-size: 14px;
+  font-weight: 650;
+  transition: background 0.16s ease;
+}
+
+.sign-out-btn:hover {
+  background: rgba(239, 68, 68, 0.12);
+}

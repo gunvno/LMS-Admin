@@ -1,0 +1,14 @@
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.answer-item {
+  border: 1px solid var(--border-subtle);
+}
+
+.answer-item:focus-within {
+  border-color: var(--primary);
+  background-color: var(--surface-container-lowest);
+}
