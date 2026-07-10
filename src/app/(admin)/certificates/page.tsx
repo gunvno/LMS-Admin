@@ -8,7 +8,8 @@ import "./certificates.css";
 
 function formatDate(value?: string) {
   if (!value) return "-";
-  return new Date(value).toLocaleDateString("vi-VN");
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) ? date.toLocaleDateString("vi-VN") : "-";
 }
 
 function statusClass(status: string) {

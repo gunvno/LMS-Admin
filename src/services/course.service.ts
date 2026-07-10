@@ -144,6 +144,18 @@ export const courseService = {
     });
   },
 
+  submitForReview: (id: string): Promise<Course> => {
+    return apiClient<Course>(`/course/api/v1/courses/${id}/submit-review`, {
+      method: 'POST',
+    });
+  },
+
+  approveCourse: (id: string): Promise<Course> => {
+    return apiClient<Course>(`/course/api/v1/courses/${id}/approve`, {
+      method: 'POST',
+    });
+  },
+
   uploadCourseImage: (courseId: string, file: File): Promise<ImageDto> => {
     const formData = new FormData();
     formData.append('file', file);

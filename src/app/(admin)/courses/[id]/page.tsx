@@ -4,9 +4,10 @@ import "../../detail.css";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Edit, BookOpen, Clock, DollarSign, Tag, UserRound, Layers3 } from "lucide-react";
+import { ArrowLeft, Edit, BookOpen, DollarSign, Tag, UserRound, Layers3 } from "lucide-react";
 import { Course, CourseCategory, courseService } from "@/services/course.service";
 import HasPermission from "@/components/HasPermission";
+import { useAuth } from "@/contexts/AuthContext";
 
 function infoValue(value?: string | number | null) {
   if (value === undefined || value === null || value === "") return "-";
@@ -24,6 +25,8 @@ export default function CourseDetailPage() {
   const [categories, setCategories] = useState<CourseCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [actionLoading, setActionLoading] = useState(false);
+  const { isAdmin } = useAuth();
 
   useEffect(() => {
     const loadData = async () => {
@@ -51,14 +54,32 @@ export default function CourseDetailPage() {
     return categories.find((category) => category.id === course.categoryId)?.name || course.categoryId || "-";
   }, [categories, course]);
 
+  const updateCourseStatus = async (action: "submit" | "approve") => {
+    if (!course) return;
+    try {
+      setActionLoading(true);
+      setError("");
+      const updated = action === "submit"
+        ? await courseService.submitForReview(course.id)
+        : await courseService.approveCourse(course.id);
+      setCourse(updated);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Không thể cập nhật trạng thái khóa học.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   return (
     <div className="page-container detail-page">
       <div className="detail-toolbar">
         <Link href="/courses" className="btn btn-ghost"><ArrowLeft size={18} /> Quay lại</Link>
         {course && (
-          <HasPermission required="COURSE_MANAGE">
-            <Link href={`/courses/${course.id}/edit`} className="btn btn-primary"><Edit size={18} /> Sửa khóa học</Link>
-          </HasPermission>
+          <div className="header-actions">
+            {!isAdmin && (course.status === "DRAFT" || course.status === "REJECTED") && <HasPermission required="COURSE_MANAGE"><button className="btn btn-primary" onClick={() => updateCourseStatus("submit")} disabled={actionLoading}>{actionLoading ? "Đang gửi..." : "Gửi duyệt"}</button></HasPermission>}
+            {isAdmin && course.status === "PENDING_REVIEW" && <HasPermission required="COURSE_REVIEW"><button className="btn btn-primary" onClick={() => updateCourseStatus("approve")} disabled={actionLoading}>{actionLoading ? "Đang duyệt..." : "Duyệt & xuất bản"}</button></HasPermission>}
+            <HasPermission required="COURSE_MANAGE"><Link href={`/courses/${course.id}/edit`} className="btn btn-primary"><Edit size={18} /> Sửa khóa học</Link></HasPermission>
+          </div>
         )}
       </div>
 
@@ -84,7 +105,7 @@ export default function CourseDetailPage() {
 
           <div className="detail-summary-grid">
             <div className="metric-card"><Tag size={18} /><span>Cấp độ</span><strong>{infoValue(course.level)}</strong></div>
-            <div className="metric-card"><Clock size={18} /><span>Thời lượng</span><strong>{course.durationMinutes ? `${course.durationMinutes} phút` : "-"}</strong></div>
+            <div className="metric-card"><Layers3 size={18} /><span>Danh mục</span><strong>{categoryName}</strong></div>
             <div className="metric-card"><DollarSign size={18} /><span>Giá</span><strong>{formatPrice(course.price)}</strong></div>
             <div className="metric-card"><BookOpen size={18} /><span>Trạng thái</span><strong>{course.status}</strong></div>
           </div>

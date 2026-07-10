@@ -76,6 +76,11 @@ function getShortId(id: string) {
   return `#${id.slice(0, 8)}`;
 }
 
+function formatPrice(value?: number) {
+  if (!value) return "Miễn phí";
+  return `${new Intl.NumberFormat("vi-VN").format(value)}đ`;
+}
+
 export default function CoursesPage() {
   const router = useRouter();
   const [courses, setCourses] = useState<Course[]>([]);
@@ -203,7 +208,7 @@ export default function CoursesPage() {
                 <th style={{ width: '35%' }}>Khóa học</th>
                 <th style={{ width: '15%' }}>Danh mục</th>
                 <th style={{ width: '10%' }}>Cấp độ</th>
-                <th style={{ width: '10%' }}>Thời lượng</th>
+                <th style={{ width: '10%' }}>Giá</th>
                 <th style={{ width: '12%' }}>Trạng thái</th>
                 <th className="actions-col">Thao tác</th>
               </tr>
@@ -241,7 +246,7 @@ export default function CoursesPage() {
                   </td>
                   <td className="text-body-md text-on-surface-variant">{categoryNameById[course.categoryId] || '-'}</td>
                   <td className="text-body-md text-on-surface-variant">{course.level || '-'}</td>
-                  <td className="text-body-md">{course.durationMinutes ? `${course.durationMinutes} phút` : '-'}</td>
+                  <td className="text-body-md">{formatPrice(course.price)}</td>
                   <td>
                     <span className={`status-badge ${statusClass(course.status)}`}>{formatStatus(course.status)}</span>
                   </td>

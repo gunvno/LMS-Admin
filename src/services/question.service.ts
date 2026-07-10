@@ -68,9 +68,29 @@ export const questionService = {
     return getPage<Answer>('/quiz/api/v1/answers', { questionId, page: 0, size: 100, sort: 'orderIndex,asc' });
   },
 
+  getQuestion: (questionId: string): Promise<Question> => {
+    return apiClient<Question>(`/quiz/api/v1/questions/${questionId}`, {
+      method: 'GET',
+    });
+  },
+
+  updateQuestion: (questionId: string, quizId: string, data: CreateQuestionPayload): Promise<Question> => {
+    return apiClient<Question>(`/quiz/api/v1/questions/${questionId}`, {
+      method: 'POST',
+      body: JSON.stringify({ data: { ...data, id: questionId, quizId }, channel: 'WEB', signature: '' }),
+    });
+  },
+
   deleteQuestion: (questionId: string): Promise<void> => {
     return apiClient<void>(`/quiz/api/v1/questions/${questionId}`, {
       method: 'DELETE',
+    });
+  },
+
+  updateAnswer: (answerId: string, questionId: string, data: CreateAnswerPayload): Promise<Answer> => {
+    return apiClient<Answer>(`/quiz/api/v1/answers/${answerId}`, {
+      method: 'POST',
+      body: JSON.stringify({ data: { ...data, id: answerId, questionId }, channel: 'WEB', signature: '' }),
     });
   },
 

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { UploadCloud } from "lucide-react";
 import { getCookie } from "@/lib/api-client";
 import { CourseCategory, CourseLevel, CourseStatus, courseService } from "@/services/course.service";
+import { useAuth } from "@/contexts/AuthContext";
 import "./new-course.css";
 
 function decodeJwtSubject(token: string | null) {
@@ -27,13 +28,13 @@ function decodeJwtSubject(token: string | null) {
 
 export default function NewCoursePage() {
   const router = useRouter();
+  const { isAdmin } = useAuth();
   const [categories, setCategories] = useState<CourseCategory[]>([]);
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [description, setDescription] = useState("");
   const [level, setLevel] = useState<CourseLevel>("BEGINNER");
-  const [durationMinutes, setDurationMinutes] = useState(0);
   const [price, setPrice] = useState(0);
   const [status, setStatus] = useState<CourseStatus>("DRAFT");
   const [thumbnail, setThumbnail] = useState<File | null>(null);
@@ -88,9 +89,8 @@ export default function NewCoursePage() {
         code,
         description,
         level,
-        durationMinutes: durationMinutes || undefined,
         price: price || undefined,
-        status,
+        status: isAdmin ? status : "DRAFT",
       });
 
       if (thumbnail) {
@@ -112,7 +112,7 @@ export default function NewCoursePage() {
         <div className="header-titles">
           <h1 className="text-headline-lg">Thêm Khóa học mới</h1>
           <p className="text-body-md text-on-surface-variant mt-2">
-            Tạo nội dung khóa học, sau đó upload thumbnail cho khóa học.
+            {isAdmin ? "Tạo nội dung và thiết lập trạng thái khóa học." : "Tạo bản nháp khóa học. Sau khi hoàn chỉnh, gửi quản trị viên duyệt để xuất bản."}
           </p>
         </div>
         <div className="header-actions">
@@ -191,14 +191,9 @@ export default function NewCoursePage() {
                 </select>
               </div>
               <div className="form-group">
-                <label className="text-label-md">Thời lượng phút</label>
-                <input type="number" min={0} className="form-input" value={durationMinutes} onChange={(e) => setDurationMinutes(Number(e.target.value))} disabled={loading} />
+                <label className="text-label-md">Giá</label>
+                <input type="number" min={0} className="form-input" value={price} onChange={(e) => setPrice(Number(e.target.value))} disabled={loading} />
               </div>
-            </div>
-
-            <div className="form-group mt-4">
-              <label className="text-label-md">Giá</label>
-              <input type="number" min={0} className="form-input" value={price} onChange={(e) => setPrice(Number(e.target.value))} disabled={loading} />
             </div>
           </div>
 
@@ -259,13 +254,13 @@ export default function NewCoursePage() {
           <div className="card p-6">
             <h3 className="text-headline-sm mb-4">Trạng thái & Cài đặt</h3>
             <div className="status-options flex flex-col gap-4 mb-6">
-              <label className={`status-card ${status === 'PUBLISHED' ? 'active' : ''}`}>
+              {isAdmin && <label className={`status-card ${status === 'PUBLISHED' ? 'active' : ''}`}>
                 <input type="radio" name="status" checked={status === 'PUBLISHED'} onChange={() => setStatus('PUBLISHED')} className="custom-radio" disabled={loading} />
                 <div className="status-info">
                   <span className="text-label-md">Công khai (Published)</span>
                   <span className="text-body-sm text-outline">Khóa học hiển thị với tất cả học viên.</span>
                 </div>
-              </label>
+              </label>}
               <label className={`status-card ${status === 'DRAFT' ? 'active' : ''}`}>
                 <input type="radio" name="status" checked={status === 'DRAFT'} onChange={() => setStatus('DRAFT')} className="custom-radio" disabled={loading} />
                 <div className="status-info">
@@ -273,6 +268,7 @@ export default function NewCoursePage() {
                   <span className="text-body-sm text-outline">Ẩn khóa học, chỉ admin/giảng viên mới thấy.</span>
                 </div>
               </label>
+              {!isAdmin && <p className="text-body-sm text-outline">Bạn chỉ có thể lưu bản nháp tại đây. Nút gửi duyệt xuất hiện trong trang chi tiết khóa học.</p>}
             </div>
           </div>
         </div>

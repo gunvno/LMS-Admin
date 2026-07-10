@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, Circle, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Circle, Edit, Eye, Plus, Trash2 } from "lucide-react";
 import { Answer, Question, questionService } from "@/services/question.service";
 import { Quiz, quizService } from "@/services/quiz.service";
 import "./new/new-question.css";
@@ -126,15 +126,23 @@ export default function QuizQuestionsPage() {
                       <span className="badge badge-neutral bg-transparent">Thứ tự {question.orderIndex}</span>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    className="icon-btn text-status-required"
-                    disabled={deletingId === question.id}
-                    onClick={() => handleDeleteQuestion(question)}
-                    title="Xóa câu hỏi"
-                  >
-                    <Trash2 size={18} />
-                  </button>
+                  <div className="flex-center gap-2">
+                    <Link className="icon-btn text-outline" href={`/quiz/${params.id}/questions/${question.id}`} title="Xem chi tiết">
+                      <Eye size={18} />
+                    </Link>
+                    <Link className="icon-btn text-primary" href={`/quiz/${params.id}/questions/${question.id}/edit`} title="Sửa câu hỏi">
+                      <Edit size={18} />
+                    </Link>
+                    <button
+                      type="button"
+                      className="icon-btn text-status-required"
+                      disabled={deletingId === question.id}
+                      onClick={() => handleDeleteQuestion(question)}
+                      title="Xóa câu hỏi"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="options-grid mt-4">

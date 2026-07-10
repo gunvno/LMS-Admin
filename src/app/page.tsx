@@ -37,9 +37,9 @@ export default function LoginPage() {
         throw new Error("Không nhận được token từ server.");
       }
 
-      setCookie('auth_token', token);
+      setCookie('auth_token', token, 86400);
       if (response.refreshToken) {
-        setCookie('refresh_token', response.refreshToken);
+        setCookie('refresh_token', response.refreshToken, 604800);
       }
       setCookie('auth_user', JSON.stringify({
         username: response.userName || username,
@@ -53,7 +53,7 @@ export default function LoginPage() {
         throw new Error("Tài khoản của bạn không có quyền truy cập vào trang quản trị.");
       }
 
-      setCookie('auth', 'true');
+      setCookie('auth', 'true', 604800);
       router.push("/dashboard");
       router.refresh();
     } catch (err: unknown) {

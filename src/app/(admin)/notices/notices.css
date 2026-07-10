@@ -1,0 +1,249 @@
+.notices-page {
+  max-width: 1320px;
+}
+
+.notices-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(340px, 0.75fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.notice-composer,
+.notice-inbox-panel {
+  padding: 22px;
+}
+
+.notice-section-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.notice-section-title > svg {
+  flex: 0 0 auto;
+  color: var(--primary);
+}
+
+.notice-section-title.split {
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.notice-form {
+  display: grid;
+  gap: 16px;
+  margin-top: 22px;
+}
+
+.notice-form label {
+  display: grid;
+  gap: 8px;
+}
+
+.notice-form label span {
+  color: var(--on-surface-variant);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.target-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  padding: 6px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--rounded);
+  background: #f8fafc;
+}
+
+.target-tabs button {
+  min-height: 40px;
+  border-radius: var(--rounded-sm);
+  color: var(--on-surface-variant);
+  font-weight: 800;
+}
+
+.target-tabs button.active {
+  background: #ffffff;
+  color: var(--primary);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+}
+
+.target-hint {
+  margin: -6px 0 0;
+  color: var(--outline);
+  font-size: 13px;
+}
+
+.notice-textarea {
+  min-height: 132px;
+  resize: vertical;
+}
+
+.notice-textarea.compact {
+  min-height: 84px;
+}
+
+.notice-submit {
+  justify-content: center;
+  min-height: 48px;
+}
+
+.notice-alert {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border-radius: var(--rounded);
+  font-weight: 800;
+}
+
+.notice-alert.success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.notice-alert.error {
+  background: var(--error-container);
+  color: var(--on-error-container);
+}
+
+.icon-action {
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--rounded);
+  color: var(--on-surface-variant);
+  background: #ffffff;
+}
+
+.mark-all-btn {
+  width: 100%;
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 18px;
+  border-radius: var(--rounded);
+  background: #eef2ff;
+  color: var(--primary);
+  font-weight: 800;
+}
+
+.mark-all-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.admin-notice-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.admin-notice-item {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--rounded);
+  background: #ffffff;
+}
+
+.admin-notice-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  color: var(--outline);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.admin-notice-item h3 {
+  font-size: 15px;
+  line-height: 22px;
+}
+
+.admin-notice-item p {
+  margin: 0;
+  color: var(--on-surface-variant);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.notice-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.notice-chip.unread {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.notice-chip.read {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.notice-chip.failed {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.read-inline-btn {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: var(--rounded-sm);
+  background: #f8fafc;
+  color: var(--primary);
+  font-weight: 800;
+}
+
+.empty-text {
+  color: var(--outline);
+  font-weight: 700;
+}
+
+.empty-notice {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 32px 16px;
+  border: 1px dashed var(--outline-variant);
+  border-radius: var(--rounded);
+  color: var(--outline);
+  text-align: center;
+}
+
+.empty-notice strong {
+  color: var(--on-surface);
+}
+
+@media (max-width: 1080px) {
+  .notices-grid,
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .target-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

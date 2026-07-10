@@ -11,25 +11,34 @@ import {
   HelpCircle,
   Users,
   Badge,
+  Bell,
   LogOut,
   ShieldCheck,
+  CreditCard,
 } from "lucide-react";
 import "./Sidebar.css";
+import { useAuth } from "@/contexts/AuthContext";
 
 const navItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Categories", href: "/categories", icon: FolderOpen },
+  { name: "Categories", href: "/categories", icon: FolderOpen, adminOnly: true },
   { name: "Courses", href: "/courses", icon: GraduationCap },
   { name: "Lessons", href: "/lessons", icon: BookOpen },
   { name: "Quiz", href: "/quiz", icon: HelpCircle },
   { name: "Enrollment", href: "/enrollment", icon: Users },
+  { name: "Payments", href: "/payments", icon: CreditCard, adminOnly: true },
   { name: "Certificates", href: "/certificates", icon: Badge },
-  { name: "Staff", href: "/staff", icon: ShieldCheck },
+  { name: "Notices", href: "/notices", icon: Bell, adminOnly: true },
+  { name: "Staff", href: "/staff", icon: ShieldCheck, adminOnly: true },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { isAdmin, user, roles } = useAuth();
+  const visibleNavItems = navItems.filter((item) => !item.adminOnly || isAdmin);
+  const displayName = user?.fullName || user?.username || "Tài khoản";
+  const displayRole = isAdmin ? "Admin" : (roles[0] || "Instructor").replace(/^ROLE_/, "");
 
   const handleLogout = async () => {
     try {
@@ -56,7 +65,7 @@ export default function Sidebar() {
       <nav className="sidebar-nav" aria-label="Admin navigation">
         <div className="nav-section-label">Workspace</div>
         <ul className="nav-list">
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
             const Icon = item.icon;
             return (
@@ -73,10 +82,10 @@ export default function Sidebar() {
 
       <div className="sidebar-footer">
         <div className="sidebar-account">
-          <div className="account-avatar">AD</div>
+          <div className="account-avatar">{displayName.slice(0, 1).toUpperCase()}</div>
           <div>
-            <div className="account-name">Admin</div>
-            <div className="account-role">Instructor</div>
+            <div className="account-name">{displayName}</div>
+            <div className="account-role">{displayRole}</div>
           </div>
         </div>
         <button onClick={handleLogout} className="sign-out-btn">

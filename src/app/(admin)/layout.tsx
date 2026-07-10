@@ -1,5 +1,6 @@
 import Sidebar from "@/components/Sidebar";
 import { AuthProvider } from "@/contexts/AuthContext";
+import AdminRouteGuard from "@/components/AdminRouteGuard";
 import "./layout.css";
 
 export default function AdminLayout({
@@ -12,7 +13,7 @@ export default function AdminLayout({
       <div className="admin-layout">
         <Sidebar />
         <main className="admin-main">
-          {children}
+          <AdminRouteGuard>{children}</AdminRouteGuard>
         </main>
       </div>
     </AuthProvider>

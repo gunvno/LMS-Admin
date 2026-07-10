@@ -10,6 +10,8 @@ interface AuthContextType {
   user: UserInfo | null;
   roles: string[];
   permissions: string[];
+  isAdmin: boolean;
+  hasRole: (requiredRole: string | string[]) => boolean;
   hasPermission: (requiredPerm: string | string[]) => boolean;
   setPermissions: (perms: string[]) => void;
   loading: boolean;
@@ -19,6 +21,8 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   roles: [],
   permissions: [],
+  isAdmin: false,
+  hasRole: () => false,
   hasPermission: () => false,
   setPermissions: () => {},
   loading: true,
@@ -82,8 +86,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return requiredPerm.some(perm => permissions.includes(perm));
   };
 
+  const hasRole = (requiredRole: string | string[]) => {
+    const requiredRoles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
+    return requiredRoles.some((role) => roles.map(normalizeRole).includes(normalizeRole(role)));
+  };
+
+  const isAdmin = hasRole('ADMIN');
+
   return (
-    <AuthContext.Provider value={{ user, roles, permissions, hasPermission, setPermissions, loading }}>
+    <AuthContext.Provider value={{ user, roles, permissions, hasPermission, isAdmin, hasRole, setPermissions, loading }}>
       {!loading ? children : <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center' }}>Loading Workspace...</div>}
     </AuthContext.Provider>
   );

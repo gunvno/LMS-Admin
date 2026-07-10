@@ -10,7 +10,8 @@ import { Enrollment, learningService } from "@/services/learning.service";
 
 function formatDate(value?: string) {
   if (!value) return "-";
-  return new Date(value).toLocaleDateString("vi-VN");
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) ? date.toLocaleDateString("vi-VN") : "-";
 }
 
 export default function EnrollmentDetailPage() {

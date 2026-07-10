@@ -1,117 +1,69 @@
-import { Users, BookOpen, GraduationCap, TrendingUp, Clock, ChevronRight } from "lucide-react";
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { BookOpen, CreditCard, FileText, TrendingUp, Clock, ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { courseService, Course } from "@/services/course.service";
+import { paymentService, Payment, Invoice } from "@/services/payment.service";
+import { useAuth } from "@/contexts/AuthContext";
 import "./dashboard.css";
 
+function formatMoney(value: number) {
+  return `${Number(value || 0).toLocaleString("vi-VN")}đ`;
+}
+
+function formatDate(value?: string) {
+  if (!value) return "-";
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) ? date.toLocaleString("vi-VN") : "-";
+}
+
 export default function DashboardPage() {
-  return (
-    <div className="page-container">
-      {/* Page Header */}
-      <div className="page-header" style={{ marginBottom: '32px' }}>
-        <div className="header-titles">
-          <h1 className="text-headline-lg">Dashboard Tổng Quan</h1>
-          <p className="text-body-md text-on-surface-variant mt-2">
-            Chào mừng trở lại! Dưới đây là tóm tắt hoạt động hôm nay.
-          </p>
-        </div>
-      </div>
+  const { isAdmin } = useAuth();
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-      {/* Metric Cards */}
-      <div className="metrics-grid mb-8">
-        <div className="card p-6 metric-card">
-          <div className="metric-header">
-            <span className="text-label-md text-on-surface-variant">Tổng Học Viên</span>
-            <div className="metric-icon bg-primary-fixed text-primary">
-              <Users size={20} />
-            </div>
-          </div>
-          <div className="metric-value text-display mt-4">12,450</div>
-          <div className="metric-trend text-success mt-2">
-            <TrendingUp size={16} /> <span className="text-body-sm">+12% so với tháng trước</span>
-          </div>
-        </div>
+  useEffect(() => {
+    const requests = isAdmin
+      ? Promise.all([
+          courseService.getCourses({ page: 0, size: 100 }),
+          paymentService.getAdminPayments(0, 100),
+          paymentService.getAdminInvoices(0, 100),
+        ])
+      : courseService.getCourses({ page: 0, size: 100 }).then((coursePage) => [coursePage, null, null] as const);
 
-        <div className="card p-6 metric-card">
-          <div className="metric-header">
-            <span className="text-label-md text-on-surface-variant">Khóa Học Active</span>
-            <div className="metric-icon bg-secondary-fixed text-secondary">
-              <BookOpen size={20} />
-            </div>
-          </div>
-          <div className="metric-value text-display mt-4">48</div>
-          <div className="metric-trend text-success mt-2">
-            <TrendingUp size={16} /> <span className="text-body-sm">+3 khóa mới</span>
-          </div>
-        </div>
+    requests
+      .then(([coursePage, paymentPage, invoicePage]) => {
+        setCourses(coursePage.content || []);
+        setPayments(paymentPage?.content || []);
+        setInvoices(invoicePage?.content || []);
+      })
+      .catch((cause) => setError(cause instanceof Error ? cause.message : "Không tải được dữ liệu dashboard."))
+      .finally(() => setLoading(false));
+  }, [isAdmin]);
 
-        <div className="card p-6 metric-card">
-          <div className="metric-header">
-            <span className="text-label-md text-on-surface-variant">Chứng Chỉ Cấp Phát</span>
-            <div className="metric-icon" style={{ backgroundColor: '#ffedd5', color: '#c2410c' }}>
-              <GraduationCap size={20} />
-            </div>
-          </div>
-          <div className="metric-value text-display mt-4">3,820</div>
-          <div className="metric-trend text-success mt-2">
-            <TrendingUp size={16} /> <span className="text-body-sm">+150 tuần này</span>
-          </div>
-        </div>
-      </div>
+  const courseById = useMemo(() => Object.fromEntries(courses.map((course) => [course.id, course.name])), [courses]);
+  const publishedCourses = courses.filter((course) => course.status === "PUBLISHED").length;
+  const paidPayments = payments.filter((payment) => payment.status === "PAID");
+  const revenue = paidPayments.reduce((total, payment) => total + Number(payment.amount || 0), 0);
+  const recentPayments = [...payments]
+    .sort((a, b) => new Date(b.displayDate || b.createdAt || b.createdDate || b.paidAt || 0).getTime() - new Date(a.displayDate || a.createdAt || a.createdDate || a.paidAt || 0).getTime())
+    .slice(0, 5);
 
-      {/* Main Content Grid */}
-      <div className="dashboard-grid">
-        {/* Recent Enrollments */}
-        <div className="card p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-headline-sm">Ghi Danh Mới Gần Đây</h3>
-            <Link href="/enrollment" className="btn btn-ghost text-primary">
-              Xem tất cả <ChevronRight size={16} />
-            </Link>
-          </div>
-          
-          <div className="activity-list flex flex-col gap-4">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="activity-item flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
-                <div className="flex items-center gap-3">
-                  <div className="student-avatar placeholder">HV</div>
-                  <div>
-                    <span className="text-label-md block">Học viên #{1000 + i}</span>
-                    <span className="text-body-sm text-outline block mt-1">Vừa đăng ký: React Mastery</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 text-body-sm text-on-surface-variant">
-                  <Clock size={14} /> 2 giờ trước
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* System Alerts / To-do */}
-        <div className="card p-6">
-          <h3 className="text-headline-sm mb-6">Cần Xử Lý</h3>
-          <div className="todo-list flex flex-col gap-4">
-            <div className="todo-item p-4 rounded bg-error-container text-on-error-container border border-error-container">
-              <div className="flex justify-between items-start">
-                <div>
-                  <span className="text-label-md font-bold block mb-1">12 Yêu cầu cấp chứng chỉ</span>
-                  <span className="text-body-sm block">Đang chờ xét duyệt bài tập cuối khóa.</span>
-                </div>
-                <Link href="/certificates" className="btn btn-secondary bg-white text-error">Xử lý ngay</Link>
-              </div>
-            </div>
-
-            <div className="todo-item p-4 rounded bg-surface-container-low border border-border-subtle">
-              <div className="flex justify-between items-start">
-                <div>
-                  <span className="text-label-md font-bold block mb-1">3 Khóa học nháp</span>
-                  <span className="text-body-sm text-outline block">Cần bổ sung bài giảng trước khi Publish.</span>
-                </div>
-                <Link href="/courses" className="btn btn-secondary">Xem chi tiết</Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+  return <div className="page-container">
+    <div className="page-header" style={{ marginBottom: "32px" }}><div className="header-titles"><h1 className="text-headline-lg">{isAdmin ? "Dashboard Tổng Quan" : "Không gian giảng viên"}</h1><p className="text-body-md text-on-surface-variant mt-2">{isAdmin ? "Số liệu được cập nhật từ các dịch vụ khóa học và thanh toán." : "Theo dõi nội dung khóa học và các yêu cầu duyệt của bạn."}</p></div></div>
+    {error && <div className="card p-4 mb-6 text-status-required">{error}</div>}
+    <div className="metrics-grid mb-8">
+      <div className="card p-6 metric-card"><div className="metric-header"><span className="text-label-md text-on-surface-variant">Khóa học đã xuất bản</span><div className="metric-icon bg-secondary-fixed text-secondary"><BookOpen size={20}/></div></div><div className="metric-value text-display mt-4">{loading ? "…" : publishedCourses}</div></div>
+      <div className="card p-6 metric-card"><div className="metric-header"><span className="text-label-md text-on-surface-variant">Chờ duyệt</span><div className="metric-icon bg-primary-fixed text-primary"><Clock size={20}/></div></div><div className="metric-value text-display mt-4">{loading ? "…" : courses.filter((course) => course.status === "PENDING_REVIEW").length}</div></div>
+      {isAdmin && <><div className="card p-6 metric-card"><div className="metric-header"><span className="text-label-md text-on-surface-variant">Tổng giao dịch</span><div className="metric-icon bg-primary-fixed text-primary"><CreditCard size={20}/></div></div><div className="metric-value text-display mt-4">{loading ? "…" : payments.length}</div></div><div className="card p-6 metric-card"><div className="metric-header"><span className="text-label-md text-on-surface-variant">Doanh thu đã thanh toán</span><div className="metric-icon" style={{ backgroundColor: "#ffedd5", color: "#c2410c" }}><TrendingUp size={20}/></div></div><div className="metric-value text-display mt-4">{loading ? "…" : formatMoney(revenue)}</div></div><div className="card p-6 metric-card"><div className="metric-header"><span className="text-label-md text-on-surface-variant">Hóa đơn đã phát hành</span><div className="metric-icon bg-primary-fixed text-primary"><FileText size={20}/></div></div><div className="metric-value text-display mt-4">{loading ? "…" : invoices.length}</div></div></>}
     </div>
-  );
+    <div className="dashboard-grid">
+      {isAdmin && <div className="card p-6"><div className="flex justify-between items-center mb-6"><h3 className="text-headline-sm">Giao dịch gần đây</h3><Link href="/payments" className="btn btn-ghost text-primary">Xem tất cả <ChevronRight size={16}/></Link></div><div className="activity-list flex flex-col gap-4">{recentPayments.length === 0 && !loading ? <span className="text-body-sm text-outline">Chưa có giao dịch.</span> : recentPayments.map((payment) => <div key={payment.id} className="activity-item flex items-center justify-between border-b pb-4 last:border-0 last:pb-0"><div><span className="text-label-md block">{courseById[payment.courseId] || payment.courseId}</span><span className="text-body-sm text-outline block mt-1">{payment.status} · {formatMoney(payment.amount)}</span></div><div className="flex items-center gap-2 text-body-sm text-on-surface-variant"><Clock size={14}/>{formatDate(payment.displayDate || payment.createdAt || payment.createdDate || payment.paidAt)}</div></div>)}</div></div>}
+      <div className="card p-6"><h3 className="text-headline-sm mb-6">Cần theo dõi</h3><div className="todo-list flex flex-col gap-4">{isAdmin && <div className="todo-item p-4 rounded bg-surface-container-low border border-border-subtle"><span className="text-label-md font-bold block mb-1">{payments.filter((payment) => payment.status === "PENDING").length} giao dịch đang chờ thanh toán</span><Link href="/payments" className="btn btn-secondary mt-3">Xem giao dịch</Link></div>}<div className="todo-item p-4 rounded bg-surface-container-low border border-border-subtle"><span className="text-label-md font-bold block mb-1">{courses.filter((course) => course.status === "PENDING_REVIEW").length} khóa học chờ duyệt</span><Link href="/courses" className="btn btn-secondary mt-3">Xem khóa học</Link></div></div></div>
+    </div>
+  </div>;
 }

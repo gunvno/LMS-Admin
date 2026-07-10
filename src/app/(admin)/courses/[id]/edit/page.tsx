@@ -6,11 +6,13 @@ import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, UploadCloud } from "lucide-react";
 import Link from "next/link";
 import { CourseCategory, CourseLevel, CourseStatus, courseService } from "@/services/course.service";
+import { useAuth } from "@/contexts/AuthContext";
 import "../../new/new-course.css";
 
 export default function EditCoursePage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const { isAdmin } = useAuth();
   const [categories, setCategories] = useState<CourseCategory[]>([]);
   const [categoryId, setCategoryId] = useState("");
   const [instructorId, setInstructorId] = useState("");
@@ -18,7 +20,6 @@ export default function EditCoursePage() {
   const [code, setCode] = useState("");
   const [description, setDescription] = useState("");
   const [level, setLevel] = useState<CourseLevel>("BEGINNER");
-  const [durationMinutes, setDurationMinutes] = useState(0);
   const [price, setPrice] = useState(0);
   const [status, setStatus] = useState<CourseStatus>("DRAFT");
   const [thumbnail, setThumbnail] = useState<File | null>(null);
@@ -41,7 +42,6 @@ export default function EditCoursePage() {
         setCode(course.code || "");
         setDescription(course.description || "");
         setLevel(course.level || "BEGINNER");
-        setDurationMinutes(course.durationMinutes || 0);
         setPrice(course.price || 0);
         setStatus(course.status || "DRAFT");
       } catch (err) {
@@ -72,7 +72,6 @@ export default function EditCoursePage() {
         code,
         description,
         level,
-        durationMinutes: durationMinutes || undefined,
         price: price || undefined,
         status,
       });
@@ -139,13 +138,9 @@ export default function EditCoursePage() {
                   </select>
                 </div>
                 <div className="form-group">
-                  <label className="text-label-md">Thời lượng phút</label>
-                  <input type="number" min={0} className="form-input" value={durationMinutes} onChange={(e) => setDurationMinutes(Number(e.target.value))} disabled={saving} />
+                  <label className="text-label-md">Giá</label>
+                  <input type="number" min={0} className="form-input" value={price} onChange={(e) => setPrice(Number(e.target.value))} disabled={saving} />
                 </div>
-              </div>
-              <div className="form-group mt-4">
-                <label className="text-label-md">Giá</label>
-                <input type="number" min={0} className="form-input" value={price} onChange={(e) => setPrice(Number(e.target.value))} disabled={saving} />
               </div>
             </div>
 
@@ -166,13 +161,13 @@ export default function EditCoursePage() {
             </div>
             <div className="card p-6">
               <h3 className="text-headline-sm mb-4">Trạng thái</h3>
-              <select className="form-input" value={status} onChange={(e) => setStatus(e.target.value as CourseStatus)} disabled={saving}>
+              {isAdmin ? <select className="form-input" value={status} onChange={(e) => setStatus(e.target.value as CourseStatus)} disabled={saving}>
                 <option value="DRAFT">Draft</option>
                 <option value="PENDING_REVIEW">Pending Review</option>
                 <option value="PUBLISHED">Published</option>
                 <option value="REJECTED">Rejected</option>
                 <option value="ARCHIVED">Archived</option>
-              </select>
+              </select> : <><strong>{status}</strong><p className="text-body-sm text-outline mt-2">Chỉ quản trị viên có thể thay đổi trạng thái xuất bản.</p></>}
             </div>
           </div>
         </div>

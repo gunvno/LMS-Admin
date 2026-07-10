@@ -61,24 +61,24 @@ export const authService = {
   },
 
   getMe: async (): Promise<UserInfo> => {
-    const token = getCookie('auth_token');
-    if (!token) {
+    if (!getCookie('auth_token')) {
       throw new Error('Phiên đăng nhập đã hết hạn.');
     }
 
     const response = await apiClient<BackendUserInfo>('/auth/userinfo', {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
-      body: token,
+      accessTokenBody: true,
     });
     return mapUserInfo(response);
   },
 
   logout: (): Promise<void> => {
-    const token = getCookie('auth_token');
+    const token = getCookie('refresh_token') || getCookie('auth_token');
     return apiClient<void>('/auth/logout', {
       method: 'POST',
       body: JSON.stringify({ token }),
+      requireAuth: false,
     });
   },
 };

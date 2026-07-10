@@ -25,10 +25,65 @@ export function clearAuthCookies() {
   document.cookie = 'auth_user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
 }
 
+type RefreshResponse = {
+  token?: string;
+  accessToken?: string;
+  refreshToken?: string;
+};
+
+let refreshPromise: Promise<string | null> | null = null;
+
+async function performTokenRefresh(): Promise<string | null> {
+  const refreshToken = getCookie('refresh_token');
+  if (!refreshToken) return null;
+
+  try {
+    const response = await fetch(`${BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept-Language': 'vi',
+      },
+      body: JSON.stringify({ token: refreshToken }),
+    });
+    const payload = await response.json().catch(() => null);
+    const data = (payload?.data ?? payload) as RefreshResponse | null;
+    const accessToken = data?.token || data?.accessToken;
+
+    if (!response.ok || !accessToken) return null;
+
+    setCookie('auth_token', accessToken, 86400);
+    if (data.refreshToken) {
+      setCookie('refresh_token', data.refreshToken, 604800);
+    }
+    setCookie('auth', 'true', 604800);
+    return accessToken;
+  } catch {
+    return null;
+  }
+}
+
+function refreshAccessToken(): Promise<string | null> {
+  if (!refreshPromise) {
+    refreshPromise = performTokenRefresh().finally(() => {
+      refreshPromise = null;
+    });
+  }
+  return refreshPromise;
+}
+
+function clearSessionAndRedirect() {
+  clearAuthCookies();
+  if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+    window.location.href = '/?expired=1';
+  }
+}
+
 
 interface FetchOptions extends RequestInit {
   requireAuth?: boolean;
   unwrap?: boolean;
+  accessTokenBody?: boolean;
 }
 
 type BackendResponse<T> = {
@@ -54,6 +109,14 @@ export async function apiClient<T>(
   endpoint: string,
   { requireAuth = true, unwrap = true, ...customConfig }: FetchOptions = {}
 ): Promise<T> {
+  return executeRequest<T>(endpoint, { requireAuth, unwrap, ...customConfig }, true);
+}
+
+async function executeRequest<T>(
+  endpoint: string,
+  { requireAuth = true, unwrap = true, accessTokenBody = false, ...customConfig }: FetchOptions,
+  allowRefresh: boolean
+): Promise<T> {
   const headers = new Headers(customConfig.headers);
 
   const isFormData = customConfig.body instanceof FormData;
@@ -73,6 +136,7 @@ export async function apiClient<T>(
 
   const response = await fetch(`${BASE_URL}${endpoint}`, {
     ...customConfig,
+    body: accessTokenBody ? getCookie('auth_token') : customConfig.body,
     headers,
   });
 
@@ -86,7 +150,13 @@ export async function apiClient<T>(
 
   if (!response.ok) {
     if (response.status === 401 && requireAuth) {
-      clearAuthCookies();
+      if (allowRefresh) {
+        const refreshedToken = await refreshAccessToken();
+        if (refreshedToken) {
+          return executeRequest<T>(endpoint, { requireAuth, unwrap, accessTokenBody, ...customConfig }, false);
+        }
+      }
+      clearSessionAndRedirect();
     }
     const backendMessage = typeof parsed === 'object' && parsed !== null
       ? (parsed.message || parsed.error || parsed.errorCode)
