@@ -1,183 +1,229 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowLeft, UploadCloud, FileText, Plus, Trash2 } from "lucide-react";
+import { FormEvent, useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import CourseSelect from "@/components/forms/CourseSelect";
+import LessonMediaFields from "@/components/forms/LessonMediaFields";
+import {
+  CreateLessonPayload,
+  LessonResource,
+  LessonStatus,
+  lessonService,
+} from "@/services/lesson.service";
 import "./edit-lesson.css";
 
 export default function EditLessonPage() {
+  const params = useParams<{ id: string }>();
+  const router = useRouter();
   const [courseId, setCourseId] = useState("");
+  const [title, setTitle] = useState("");
+  const [code, setCode] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
+  const [durationMinutes, setDurationMinutes] = useState(0);
+  const [orderIndex, setOrderIndex] = useState(1);
+  const [status, setStatus] = useState<LessonStatus>("DRAFT");
+  const [content, setContent] = useState("");
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [documentFiles, setDocumentFiles] = useState<File[]>([]);
+  const [resources, setResources] = useState<LessonResource[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+
+    const loadLesson = async () => {
+      try {
+        setLoading(true);
+        setError("");
+        const [lesson, resourcePage] = await Promise.all([
+          lessonService.getLesson(params.id),
+          lessonService.getLessonResources(params.id),
+        ]);
+        if (!active) return;
+        setCourseId(lesson.courseId);
+        setTitle(lesson.title);
+        setCode(lesson.code || "");
+        setVideoUrl(lesson.videoUrl || "");
+        setDurationMinutes(lesson.durationMinutes ?? 0);
+        setOrderIndex(lesson.orderIndex ?? 1);
+        setStatus(lesson.status);
+        setContent(lesson.content || "");
+        setResources(resourcePage.content);
+      } catch (loadError) {
+        if (active) {
+          setError(loadError instanceof Error ? loadError.message : "Không tải được bài học.");
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    void loadLesson();
+    return () => { active = false; };
+  }, [params.id]);
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!courseId || !title.trim()) {
+      setError("Vui lòng chọn khóa học và nhập tên bài học.");
+      return;
+    }
+    if (videoFile && videoFile.size > 200 * 1024 * 1024) {
+      setError("Video không được lớn hơn 200 MB.");
+      return;
+    }
+
+    const payload: CreateLessonPayload = {
+      courseId,
+      title: title.trim(),
+      code: code.trim() || undefined,
+      content: content.trim() || undefined,
+      videoUrl: videoUrl.trim() || undefined,
+      orderIndex,
+      durationMinutes,
+      status,
+    };
+
+    try {
+      setSaving(true);
+      setError("");
+      await lessonService.updateLesson(params.id, payload);
+
+      if (videoFile) {
+        const videoResource = await lessonService.uploadLessonResource(params.id, videoFile, videoFile.name);
+        const uploadedVideoUrl = `/course/api/v1/lesson-resources/${videoResource.id}/view`;
+        await lessonService.updateLesson(params.id, { ...payload, videoUrl: uploadedVideoUrl });
+        const oldVideos = resources.filter((resource) => resource.resourceType === "VIDEO");
+        await Promise.all(oldVideos.map((resource) => lessonService.deleteLessonResource(resource.id)));
+        setVideoUrl(uploadedVideoUrl);
+        setVideoFile(null);
+      }
+
+      for (const documentFile of documentFiles) {
+        await lessonService.uploadLessonResource(params.id, documentFile, documentFile.name);
+        setDocumentFiles((current) => current.filter((file) => file !== documentFile));
+      }
+      router.replace("/lessons");
+      router.refresh();
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Không cập nhật được bài học.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteResource = async (resource: LessonResource) => {
+    if (!window.confirm(`Xóa tài liệu “${resource.title}”?`)) return;
+    try {
+      setSaving(true);
+      setError("");
+      await lessonService.deleteLessonResource(resource.id);
+      setResources((current) => current.filter((item) => item.id !== resource.id));
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "Không xóa được tài liệu.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
-    <div className="page-container" style={{ maxWidth: '1100px' }}>
-      {/* Page Header */}
-      <div className="page-header" style={{ marginBottom: '24px' }}>
+    <form onSubmit={handleSubmit} className="page-container" style={{ maxWidth: "1100px" }}>
+      <div className="page-header" style={{ marginBottom: "24px" }}>
         <div className="header-titles flex-center gap-4">
-          <Link href="/lessons" className="icon-btn text-outline">
-            <ArrowLeft size={24} />
-          </Link>
+          <Link href="/lessons" className="icon-btn text-outline"><ArrowLeft size={24} /></Link>
           <div>
-            <h1 className="text-headline-lg">Edit Lesson</h1>
+            <h1 className="text-headline-lg">Sửa bài học</h1>
             <p className="text-body-md text-on-surface-variant mt-1">
-              Advanced React Patterns - Chapter 2
+              {loading ? "Đang tải dữ liệu bài học..." : title}
             </p>
           </div>
         </div>
         <div className="header-actions">
-          <button className="btn btn-ghost">Cancel</button>
-          <button className="btn btn-primary">Save Changes</button>
+          <Link href="/lessons" className="btn btn-ghost">Hủy</Link>
+          <button className="btn btn-primary" type="submit" disabled={loading || saving}>
+            {saving ? "Đang lưu..." : "Lưu thay đổi"}
+          </button>
         </div>
       </div>
 
-      <div className="lesson-form-grid">
-        {/* Left Column */}
+      {error && <div className="card p-4 mb-4 text-body-md text-status-required">{error}</div>}
+
+      <div className="lesson-form-grid" aria-busy={loading}>
         <div className="form-left-col">
-          {/* Basic Information */}
           <div className="card p-6 mb-6">
-            <h3 className="text-headline-sm mb-4">Basic Information</h3>
+            <h3 className="text-headline-sm mb-4">Thông tin cơ bản</h3>
             <div className="form-group mb-4">
-              <label className="text-label-md">
-                Lesson Title <span className="text-status-required">*</span>
-              </label>
-              <input type="text" className="form-input" defaultValue="Understanding Higher-Order Components" />
+              <label className="text-label-md">Tên bài học <span className="text-status-required">*</span></label>
+              <input type="text" className="form-input" value={title} onChange={(event) => setTitle(event.target.value)} required disabled={loading || saving} />
             </div>
             <div className="form-grid-2">
               <div className="form-group">
-                <label className="text-label-md">Chapter Module</label>
-<CourseSelect value={courseId} onChange={setCourseId} required />
+                <label className="text-label-md">Khóa học <span className="text-status-required">*</span></label>
+                <CourseSelect value={courseId} onChange={setCourseId} required className="form-input" disabled={loading || saving} />
               </div>
               <div className="form-group">
-                <label className="text-label-md">Lesson Type</label>
-                <select className="form-input">
-                  <option>Video Lesson</option>
-                  <option>Text Lesson</option>
-                  <option>Quiz</option>
-                </select>
+                <label className="text-label-md">Mã bài học</label>
+                <input type="text" className="form-input" value={code} onChange={(event) => setCode(event.target.value)} disabled={loading || saving} />
+              </div>
+            </div>
+            <div className="form-grid-2 mt-4">
+              <div className="form-group">
+                <label className="text-label-md">Thứ tự</label>
+                <input type="number" className="form-input" min={1} value={orderIndex} onChange={(event) => setOrderIndex(Number(event.target.value))} disabled={loading || saving} />
+              </div>
+              <div className="form-group">
+                <label className="text-label-md">Thời lượng (phút)</label>
+                <input type="number" className="form-input" min={0} value={durationMinutes} onChange={(event) => setDurationMinutes(Number(event.target.value))} disabled={loading || saving} />
               </div>
             </div>
             <div className="form-group mt-4">
-              <label className="text-label-md">Short Description</label>
-              <textarea 
-                className="form-input" 
-                rows={3}
-                defaultValue="An in-depth look at how to create and utilize Higher-Order Components (HOCs) in React to reuse component logic."
-              />
+              <label className="text-label-md">Video URL</label>
+              <input type="url" className="form-input" value={videoUrl} onChange={(event) => setVideoUrl(event.target.value)} placeholder="https://example.com/video.mp4" disabled={loading || saving} />
             </div>
           </div>
 
-          {/* Detailed Content */}
           <div className="card p-6">
-            <h3 className="text-headline-sm mb-4">Detailed Content</h3>
+            <h3 className="text-headline-sm mb-4">Nội dung chi tiết</h3>
             <div className="editor-container border rounded">
               <div className="editor-toolbar border-b p-2 flex gap-2 bg-surface-container-lowest">
-                <button className="editor-btn font-bold">B</button>
-                <button className="editor-btn italic">I</button>
-                <button className="editor-btn underline">U</button>
+                <button className="editor-btn font-bold" type="button">B</button>
+                <button className="editor-btn italic" type="button">I</button>
+                <button className="editor-btn underline" type="button">U</button>
                 <div className="divider"></div>
-                <button className="editor-btn">List</button>
-                <button className="editor-btn">Code</button>
+                <button className="editor-btn" type="button">List</button>
+                <button className="editor-btn" type="button">Code</button>
               </div>
-              <textarea 
-                className="editor-textarea p-4" 
-                rows={12}
-                defaultValue="Higher-Order Components (HOCs) are an advanced technique in React for reusing component logic. HOCs are not part of the React API, per se. They are a pattern that emerges from React's compositional nature.
-
-Concretely, a higher-order component is a function that takes a component and returns a new component.
-
-const EnhancedComponent = higherOrderComponent(WrappedComponent);
-
-Whereas a component transforms props into UI, a higher-order component transforms a component into another component."
-              />
+              <textarea className="editor-textarea p-4" rows={12} value={content} onChange={(event) => setContent(event.target.value)} disabled={loading || saving} />
             </div>
           </div>
         </div>
 
-        {/* Right Column */}
         <div className="form-right-col">
-          {/* Primary Media */}
-          <div className="card p-6 mb-6">
-            <h3 className="text-headline-sm mb-4">Primary Media</h3>
-            <div className="upload-area mb-4">
-              <div className="upload-icon-wrapper bg-primary-fixed mb-3">
-                <UploadCloud size={24} className="text-primary" />
-              </div>
-              <span className="text-label-md text-primary cursor-pointer">Click to upload video</span>
-              <span className="text-body-sm text-outline mt-1 text-center">MP4, WebM (Max 500MB)</span>
-            </div>
-            <div className="media-attachment">
-              <div className="media-icon bg-secondary-fixed text-on-secondary-fixed">
-                <FileText size={20} />
-              </div>
-              <div className="media-info flex-1">
-                <span className="text-label-md block">hoc-tutorial.mp4</span>
-                <span className="text-body-sm text-outline">124.5 MB • 14:20</span>
-              </div>
-              <button className="icon-btn text-error"><Trash2 size={16} /></button>
-            </div>
-          </div>
+          <LessonMediaFields
+            videoFile={videoFile}
+            documentFiles={documentFiles}
+            existingResources={resources}
+            disabled={loading || saving}
+            onVideoChange={setVideoFile}
+            onDocumentsChange={setDocumentFiles}
+            onDeleteExisting={(resource) => void handleDeleteResource(resource)}
+          />
 
-          {/* Resources */}
-          <div className="card p-6 mb-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-headline-sm">Resources</h3>
-              <button className="icon-btn text-primary"><Plus size={18} /></button>
-            </div>
-            
-            <div className="resources-list flex flex-col gap-3">
-              <div className="resource-item">
-                <div className="media-icon" style={{ backgroundColor: '#ffedd5', color: '#c2410c' }}>
-                  <FileText size={18} />
-                </div>
-                <div className="media-info flex-1">
-                  <span className="text-label-md block">Code_Snippets.zip</span>
-                  <span className="text-body-sm text-outline">2.4 MB</span>
-                </div>
-              </div>
-              
-              <div className="resource-item">
-                <div className="media-icon" style={{ backgroundColor: '#ccfbf1', color: '#115e59' }}>
-                  <FileText size={18} />
-                </div>
-                <div className="media-info flex-1">
-                  <span className="text-label-md block">HOC_Cheatsheet.pdf</span>
-                  <span className="text-body-sm text-outline">1.1 MB</span>
-                </div>
-              </div>
-            </div>
-            
-            <button className="btn btn-secondary w-full mt-4 justify-center">
-              <FileText size={16} className="mr-2" /> Add Resource
-            </button>
-          </div>
-
-          {/* Settings */}
           <div className="card p-6">
-            <h3 className="text-headline-sm mb-4">Settings</h3>
-            <div className="settings-list flex flex-col gap-6">
-              <div className="setting-toggle">
-                <div className="toggle-switch active">
-                  <div className="toggle-knob"></div>
-                </div>
-                <div className="setting-info flex-1">
-                  <span className="text-label-md block">Publish Lesson</span>
-                  <span className="text-body-sm text-outline">Visible to enrolled students</span>
-                </div>
-              </div>
-              
-              <div className="setting-toggle">
-                <div className="toggle-switch">
-                  <div className="toggle-knob"></div>
-                </div>
-                <div className="setting-info flex-1">
-                  <span className="text-label-md block">Free Preview</span>
-                  <span className="text-body-sm text-outline">Allow non-enrolled to view</span>
-                </div>
-              </div>
-            </div>
+            <h3 className="text-headline-sm mb-4">Trạng thái</h3>
+            <select className="form-input" value={status} onChange={(event) => setStatus(event.target.value as LessonStatus)} disabled={loading || saving}>
+              <option value="ACTIVE">Đang hoạt động</option>
+              <option value="DRAFT">Bản nháp</option>
+              <option value="INACTIVE">Ngừng hoạt động</option>
+              <option value="ARCHIVED">Đã lưu trữ</option>
+            </select>
           </div>
         </div>
       </div>
-    </div>
+    </form>
   );
 }

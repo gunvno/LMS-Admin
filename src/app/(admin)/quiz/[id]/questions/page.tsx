@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2, Circle, Edit, Eye, Plus, Trash2 } from "lucide-react";
 import { Answer, Question, questionService } from "@/services/question.service";
 import { Quiz, quizService } from "@/services/quiz.service";
-import "./new/new-question.css";
 
 function sortByOrder<T extends { orderIndex: number }>(items: T[]) {
   return [...items].sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
@@ -14,6 +13,8 @@ function sortByOrder<T extends { orderIndex: number }>(items: T[]) {
 
 export default function QuizQuestionsPage() {
   const params = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
+  const refreshKey = searchParams.get("refresh");
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answersByQuestionId, setAnswersByQuestionId] = useState<Record<string, Answer[]>>({});
@@ -25,10 +26,11 @@ export default function QuizQuestionsPage() {
     return Object.values(answersByQuestionId).reduce((total, answers) => total + answers.length, 0);
   }, [answersByQuestionId]);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
+      if (refreshKey) setAnswersByQuestionId({});
       const [nextQuiz, questionPage] = await Promise.all([
         quizService.getQuiz(params.id),
         questionService.getQuestions(params.id),
@@ -49,7 +51,7 @@ export default function QuizQuestionsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [params.id, refreshKey]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -57,7 +59,7 @@ export default function QuizQuestionsPage() {
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
-  }, [params.id]);
+  }, [loadData]);
 
   const handleDeleteQuestion = async (question: Question) => {
     if (!window.confirm("Xóa câu hỏi này? Các đáp án liên quan có thể vẫn còn trong database nếu backend chưa cascade.")) return;

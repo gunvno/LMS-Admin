@@ -6,7 +6,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import HasPermission from "@/components/HasPermission";
 import ActionMenu from "@/components/ActionMenu";
-import { Plus, Search, ChevronDown, ChevronLeft, ChevronRight, Edit, Trash2 } from "lucide-react";
+import { BadgeCheck, ChevronDown, ChevronLeft, ChevronRight, Edit, Eye, Plus, Search, Trash2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import { getCookie } from "@/lib/api-client";
 import { Course, CourseCategory, CourseStatus, courseService } from "@/services/course.service";
 import "./courses.css";
@@ -83,11 +84,13 @@ function formatPrice(value?: number) {
 
 export default function CoursesPage() {
   const router = useRouter();
+  const { hasPermission, isAdmin } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
   const [categories, setCategories] = useState<CourseCategory[]>([]);
   const [totalElements, setTotalElements] = useState(0);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState("");
+  const [approvingId, setApprovingId] = useState("");
   const [error, setError] = useState("");
   const [keyword, setKeyword] = useState("");
   const [status, setStatus] = useState<"ALL" | CourseStatus>("ALL");
@@ -152,6 +155,21 @@ export default function CoursesPage() {
       setError(err instanceof Error ? err.message : "Không xóa được khóa học.");
     } finally {
       setDeletingId("");
+    }
+  };
+
+  const handleApprove = async (course: Course) => {
+    if (!window.confirm(`Duyệt và xuất bản khóa học "${course.name}"?`)) return;
+
+    try {
+      setApprovingId(course.id);
+      setError("");
+      const updatedCourse = await courseService.approveCourse(course.id);
+      setCourses(prev => prev.map(item => item.id === course.id ? updatedCourse : item));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Không duyệt được khóa học.");
+    } finally {
+      setApprovingId("");
     }
   };
 
@@ -251,12 +269,20 @@ export default function CoursesPage() {
                     <span className={`status-badge ${statusClass(course.status)}`}>{formatStatus(course.status)}</span>
                   </td>
                   <td className="actions-cell">
-                    <HasPermission required="COURSE_MANAGE">
+                    <HasPermission required={["COURSE_MANAGE", "COURSE_REVIEW"]}>
                       <ActionMenu
                         items={[
-                          { label: 'Xem chi tiết', href: `/courses/${course.id}`, icon: <Edit size={16} /> },
-                          { label: 'Sửa', href: `/courses/${course.id}/edit`, icon: <Edit size={16} /> },
-                          { label: deletingId === course.id ? 'Đang xóa...' : 'Xóa', icon: <Trash2 size={16} />, danger: true, disabled: deletingId === course.id, onClick: () => handleDelete(course) },
+                          { label: 'Xem chi tiết', href: `/courses/${course.id}`, icon: <Eye size={16} /> },
+                          ...(isAdmin && course.status === 'PENDING_REVIEW' && hasPermission('COURSE_REVIEW') ? [{
+                            label: approvingId === course.id ? 'Đang duyệt...' : 'Duyệt và xuất bản',
+                            icon: <BadgeCheck size={16} />,
+                            disabled: approvingId === course.id,
+                            onClick: () => void handleApprove(course),
+                          }] : []),
+                          ...(hasPermission('COURSE_MANAGE') ? [
+                            { label: 'Sửa', href: `/courses/${course.id}/edit`, icon: <Edit size={16} /> },
+                            { label: deletingId === course.id ? 'Đang xóa...' : 'Xóa', icon: <Trash2 size={16} />, danger: true, disabled: deletingId === course.id, onClick: () => void handleDelete(course) },
+                          ] : []),
                         ]}
                       />
                     </HasPermission>

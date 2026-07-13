@@ -97,7 +97,7 @@ export default function NewCoursePage() {
         await courseService.uploadCourseImage(createdCourse.id, thumbnail);
       }
 
-      router.push('/courses');
+      router.replace('/courses');
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Không tạo được khóa học.");

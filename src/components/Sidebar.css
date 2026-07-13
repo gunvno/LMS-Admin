@@ -12,6 +12,12 @@
   z-index: 100;
 }
 
+.mobile-admin-bar,
+.sidebar-backdrop,
+.sidebar-close {
+  display: none;
+}
+
 .sidebar-header {
   min-height: 82px;
   padding: 22px 20px 18px;
@@ -34,6 +40,7 @@
 }
 
 .admin-info {
+  flex: 1;
   min-width: 0;
 }
 
@@ -169,4 +176,131 @@
 
 .sign-out-btn:hover {
   background: rgba(239, 68, 68, 0.12);
+}
+
+@media (max-width: 1024px) {
+  .mobile-admin-bar {
+    position: fixed;
+    inset: 0 0 auto 0;
+    z-index: 1000;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 18px;
+    border-bottom: 1px solid #d9e2ec;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+    backdrop-filter: blur(12px);
+  }
+
+  .mobile-menu-btn,
+  .sidebar-close {
+    width: 40px;
+    height: 40px;
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #d0d5dd;
+    border-radius: 8px;
+  }
+
+  .mobile-menu-btn {
+    color: #344054;
+    background: #ffffff;
+  }
+
+  .mobile-brand {
+    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: #0f172a;
+    font-size: 15px;
+    font-weight: 800;
+  }
+
+  .mobile-brand-mark {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    color: #ffffff;
+    background: #2563eb;
+  }
+
+  .sidebar {
+    z-index: 1200;
+    width: min(300px, 86vw);
+    max-width: 100%;
+    transform: translateX(-100%);
+    visibility: hidden;
+    box-shadow: 20px 0 50px rgba(15, 23, 42, 0.22);
+    transition: transform 0.22s ease, visibility 0.22s ease;
+  }
+
+  .sidebar.mobile-open {
+    transform: translateX(0);
+    visibility: visible;
+  }
+
+  .sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1100;
+    display: block;
+    border: 0;
+    background: rgba(15, 23, 42, 0.48);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+  }
+
+  .sidebar-backdrop.visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  .sidebar-close {
+    color: #cbd5e1;
+    border-color: rgba(148, 163, 184, 0.25);
+  }
+}
+
+@media (max-width: 480px) {
+  .mobile-admin-bar {
+    height: 58px;
+    padding: 0 12px;
+  }
+
+  .mobile-menu-btn {
+    width: 38px;
+    height: 38px;
+  }
+
+  .sidebar-header {
+    min-height: 74px;
+    padding: 16px;
+  }
+
+  .sidebar-nav {
+    padding: 14px 10px;
+  }
+
+  .sidebar-footer {
+    padding: 12px 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .sidebar-backdrop {
+    transition: none;
+  }
 }

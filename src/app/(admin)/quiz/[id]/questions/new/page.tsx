@@ -5,7 +5,6 @@ import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { questionService } from "@/services/question.service";
-import "./new-question.css";
 
 type AnswerDraft = {
   id: string;
@@ -24,7 +23,6 @@ export default function NewQuestionPage() {
   const router = useRouter();
   const [content, setContent] = useState("");
   const [score, setScore] = useState(1);
-  const [orderIndex, setOrderIndex] = useState(1);
   const [answers, setAnswers] = useState<AnswerDraft[]>([
     createAnswerDraft(1),
     createAnswerDraft(2),
@@ -78,7 +76,6 @@ export default function NewQuestionPage() {
         content: content.trim(),
         questionType: "SINGLE_CHOICE",
         score,
-        orderIndex,
       });
 
       await Promise.all(
@@ -92,7 +89,7 @@ export default function NewQuestionPage() {
           }))
       );
 
-      router.push("/quiz");
+      router.replace(`/quiz/${params.id}/questions?refresh=${Date.now()}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Không lưu được câu hỏi.");
     } finally {
@@ -149,11 +146,6 @@ export default function NewQuestionPage() {
             </label>
             <input type="number" className="form-input" min={0.1} step={0.1} value={score} onChange={(event) => setScore(Number(event.target.value))} />
           </div>
-        </div>
-
-        <div className="form-group mb-8">
-          <label className="text-label-md">Thứ tự hiển thị</label>
-          <input type="number" className="form-input" min={1} value={orderIndex} onChange={(event) => setOrderIndex(Number(event.target.value))} />
         </div>
 
         <div className="answers-section">

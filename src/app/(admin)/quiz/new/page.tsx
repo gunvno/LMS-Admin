@@ -62,8 +62,9 @@ export default function NewQuizPage() {
     try {
       setSubmitting(true);
       setError("");
-      const quiz = await quizService.createQuiz(payload);
-      router.push(`/quiz?id=${quiz.id}`);
+      await quizService.createQuiz(payload);
+      router.replace("/quiz");
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Không lưu được quiz.");
     } finally {

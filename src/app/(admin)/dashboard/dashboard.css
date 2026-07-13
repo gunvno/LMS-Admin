@@ -38,3 +38,31 @@
 .last\:pb-0:last-child {
   padding-bottom: 0;
 }
+
+@media (max-width: 1100px) {
+  .metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+@media (max-width: 600px) {
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .metric-header {
+    gap: 12px;
+  }
+
+  .dashboard-grid .card > .flex.justify-between {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+}

@@ -17,10 +17,23 @@ export type Lesson = {
 
 export type CreateLessonPayload = Omit<Lesson, 'id'>;
 
+export type LessonResourceType = 'PDF' | 'DOCX' | 'LINK' | 'VIDEO' | 'IMAGE';
+
+export type LessonResource = {
+  id: string;
+  lessonId: string;
+  title: string;
+  resourceType: LessonResourceType;
+  filePath?: string;
+  externalUrl?: string;
+  status: 'ACTIVE' | 'INACTIVE';
+};
+
 type ListParams = {
   page?: number;
   size?: number;
   sort?: string;
+  lessonId?: string;
 };
 
 function toQuery(params: ListParams = {}) {
@@ -28,6 +41,7 @@ function toQuery(params: ListParams = {}) {
   search.set('page', String(params.page ?? 0));
   search.set('size', String(params.size ?? 10));
   if (params.sort) search.set('sort', params.sort);
+  if (params.lessonId) search.set('lessonId', params.lessonId);
   return search.toString();
 }
 
@@ -79,6 +93,31 @@ export const lessonService = {
 
   deleteLesson: (id: string): Promise<void> => {
     return apiClient<void>(`/course/api/v1/lessons/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  getLessonResources: (lessonId: string): Promise<PageResponse<LessonResource>> => {
+    return getPage<LessonResource>('/course/api/v1/lesson-resources', {
+      lessonId,
+      page: 0,
+      size: 100,
+    });
+  },
+
+  uploadLessonResource: (lessonId: string, file: File, title = file.name): Promise<LessonResource> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('title', title);
+
+    return apiClient<LessonResource>(`/course/api/v1/lessons/${lessonId}/resources`, {
+      method: 'POST',
+      body: formData,
+    });
+  },
+
+  deleteLessonResource: (id: string): Promise<void> => {
+    return apiClient<void>(`/course/api/v1/lesson-resources/${id}`, {
       method: 'DELETE',
     });
   },

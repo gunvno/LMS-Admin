@@ -23,7 +23,7 @@ export default function NewCategoryPage() {
     try {
       setLoading(true);
       await courseService.createCategory({ name, code, description, status });
-      router.push('/categories');
+      router.replace('/categories');
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Không tạo được danh mục.");

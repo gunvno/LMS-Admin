@@ -12,3 +12,17 @@
   border-color: var(--primary);
   background-color: var(--surface-container-lowest);
 }
+
+@media (max-width: 700px) {
+  .form-grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .answer-item {
+    flex-wrap: wrap;
+  }
+
+  .answer-item .form-input {
+    flex-basis: calc(100% - 52px);
+  }
+}

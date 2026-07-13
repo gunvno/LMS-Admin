@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { clearAuthCookies } from "@/lib/api-client";
 import {
   LayoutDashboard,
@@ -15,6 +16,8 @@ import {
   LogOut,
   ShieldCheck,
   CreditCard,
+  Menu,
+  X,
 } from "lucide-react";
 import "./Sidebar.css";
 import { useAuth } from "@/contexts/AuthContext";
@@ -35,10 +38,27 @@ const navItems = [
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const [mobileOpen, setMobileOpen] = useState(false);
   const { isAdmin, user, roles } = useAuth();
   const visibleNavItems = navItems.filter((item) => !item.adminOnly || isAdmin);
   const displayName = user?.fullName || user?.username || "Tài khoản";
   const displayRole = isAdmin ? "Admin" : (roles[0] || "Instructor").replace(/^ROLE_/, "");
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileOpen(false);
+    };
+
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [mobileOpen]);
 
   const handleLogout = async () => {
     try {
@@ -51,7 +71,33 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="sidebar">
+    <>
+      <header className="mobile-admin-bar">
+        <button
+          type="button"
+          className="mobile-menu-btn"
+          aria-label="Mở menu quản trị"
+          aria-controls="admin-sidebar"
+          aria-expanded={mobileOpen}
+          onClick={() => setMobileOpen(true)}
+        >
+          <Menu size={22} />
+        </button>
+        <Link href="/dashboard" className="mobile-brand" onClick={() => setMobileOpen(false)}>
+          <span className="mobile-brand-mark"><GraduationCap size={20} /></span>
+          <span>EduFlow LMS</span>
+        </Link>
+      </header>
+
+      <button
+        type="button"
+        className={`sidebar-backdrop ${mobileOpen ? "visible" : ""}`}
+        aria-label="Đóng menu quản trị"
+        tabIndex={mobileOpen ? 0 : -1}
+        onClick={() => setMobileOpen(false)}
+      />
+
+      <aside id="admin-sidebar" className={`sidebar ${mobileOpen ? "mobile-open" : ""}`}>
       <div className="sidebar-header">
         <div className="brand-mark">
           <GraduationCap size={24} />
@@ -60,6 +106,9 @@ export default function Sidebar() {
           <h2 className="admin-title">EduFlow LMS</h2>
           <span className="admin-subtitle">Admin Console</span>
         </div>
+        <button type="button" className="sidebar-close" aria-label="Đóng menu" onClick={() => setMobileOpen(false)}>
+          <X size={20} />
+        </button>
       </div>
 
       <nav className="sidebar-nav" aria-label="Admin navigation">
@@ -70,7 +119,7 @@ export default function Sidebar() {
             const Icon = item.icon;
             return (
               <li key={item.name} className="nav-item">
-                <Link href={item.href} className={`nav-link ${isActive ? "active" : ""}`}>
+                <Link href={item.href} className={`nav-link ${isActive ? "active" : ""}`} onClick={() => setMobileOpen(false)}>
                   <Icon className="nav-icon" size={19} />
                   <span className="nav-text">{item.name}</span>
                 </Link>
@@ -93,6 +142,7 @@ export default function Sidebar() {
           <span>Sign Out</span>
         </button>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }

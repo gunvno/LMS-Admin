@@ -2,9 +2,10 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, UploadCloud, Plus } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import CourseSelect from "@/components/forms/CourseSelect";
+import LessonMediaFields from "@/components/forms/LessonMediaFields";
 import { CreateLessonPayload, LessonStatus, lessonService } from "@/services/lesson.service";
 import "../[id]/edit/edit-lesson.css";
 
@@ -18,6 +19,9 @@ export default function NewLessonPage() {
   const [orderIndex, setOrderIndex] = useState(1);
   const [status, setStatus] = useState<LessonStatus>("ACTIVE");
   const [content, setContent] = useState("");
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [documentFiles, setDocumentFiles] = useState<File[]>([]);
+  const [createdLessonId, setCreatedLessonId] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -27,13 +31,17 @@ export default function NewLessonPage() {
       setError("Vui lòng chọn khóa học và nhập tên bài học.");
       return;
     }
+    if (videoFile && videoFile.size > 200 * 1024 * 1024) {
+      setError("Video không được lớn hơn 200 MB.");
+      return;
+    }
 
     const payload: CreateLessonPayload = {
       courseId,
       title: title.trim(),
       code: code.trim() || undefined,
       content: content.trim() || undefined,
-      videoUrl: videoUrl.trim() || undefined,
+      videoUrl: videoFile ? undefined : videoUrl.trim() || undefined,
       orderIndex,
       durationMinutes,
       status,
@@ -42,8 +50,25 @@ export default function NewLessonPage() {
     try {
       setSubmitting(true);
       setError("");
-      const lesson = await lessonService.createLesson(payload);
-      router.push(`/lessons/${lesson.id}`);
+      let lesson = createdLessonId
+        ? await lessonService.updateLesson(createdLessonId, payload)
+        : await lessonService.createLesson(payload);
+      if (!createdLessonId) setCreatedLessonId(lesson.id);
+
+      if (videoFile) {
+        const videoResource = await lessonService.uploadLessonResource(lesson.id, videoFile, videoFile.name);
+        const uploadedVideoUrl = `/course/api/v1/lesson-resources/${videoResource.id}/view`;
+        lesson = await lessonService.updateLesson(lesson.id, { ...payload, videoUrl: uploadedVideoUrl });
+        setVideoUrl(uploadedVideoUrl);
+        setVideoFile(null);
+      }
+
+      for (const documentFile of documentFiles) {
+        await lessonService.uploadLessonResource(lesson.id, documentFile, documentFile.name);
+        setDocumentFiles((current) => current.filter((file) => file !== documentFile));
+      }
+      router.replace("/lessons");
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Không lưu được bài học.");
     } finally {
@@ -120,25 +145,13 @@ export default function NewLessonPage() {
         </div>
 
         <div className="form-right-col">
-          <div className="card p-6 mb-6">
-            <h3 className="text-headline-sm mb-4">Video bài giảng</h3>
-            <div className="upload-area mb-4">
-              <div className="upload-icon-wrapper bg-primary-fixed mb-3">
-                <UploadCloud size={24} className="text-primary" />
-              </div>
-              <span className="text-label-md text-primary">Tạm dùng Video URL</span>
-              <span className="text-body-sm text-outline mt-1 text-center">Upload file tài nguyên sẽ nối sau qua API resource.</span>
-            </div>
-          </div>
-
-          <div className="card p-6 mb-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-headline-sm">Tài liệu đính kèm</h3>
-              <button className="icon-btn text-primary" type="button"><Plus size={18} /></button>
-            </div>
-            <p className="text-body-sm text-outline mb-4">Backend đã có API upload resource, phần này sẽ nối ở lượt file upload.</p>
-            <button className="btn btn-secondary w-full justify-center" type="button">Thêm tài liệu</button>
-          </div>
+          <LessonMediaFields
+            videoFile={videoFile}
+            documentFiles={documentFiles}
+            disabled={submitting}
+            onVideoChange={setVideoFile}
+            onDocumentsChange={setDocumentFiles}
+          />
 
           <div className="card p-6">
             <h3 className="text-headline-sm mb-4">Cài đặt</h3>

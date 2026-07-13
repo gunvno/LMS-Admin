@@ -4,8 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
-import { Answer, questionService } from "@/services/question.service";
-import "../../new/new-question.css";
+import { questionService } from "@/services/question.service";
 
 type AnswerDraft = {
   id?: string;
@@ -25,7 +24,6 @@ export default function EditQuestionPage() {
   const router = useRouter();
   const [content, setContent] = useState("");
   const [score, setScore] = useState(1);
-  const [orderIndex, setOrderIndex] = useState(1);
   const [answers, setAnswers] = useState<AnswerDraft[]>([]);
   const [deletedAnswerIds, setDeletedAnswerIds] = useState<string[]>([]);
   const [correctIndex, setCorrectIndex] = useState(0);
@@ -45,7 +43,6 @@ export default function EditQuestionPage() {
         const nextAnswers = [...(answerPage.content || [])].sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
         setContent(question.content);
         setScore(question.score);
-        setOrderIndex(question.orderIndex);
         setAnswers(nextAnswers.map((answer) => ({
           id: answer.id,
           localId: answer.id,
@@ -105,7 +102,6 @@ export default function EditQuestionPage() {
         content: content.trim(),
         questionType: "SINGLE_CHOICE",
         score,
-        orderIndex,
       });
 
       await Promise.all(deletedAnswerIds.map((answerId) => questionService.deleteAnswer(answerId)));
@@ -158,14 +154,10 @@ export default function EditQuestionPage() {
           <textarea className="form-input" rows={5} value={content} onChange={(event) => setContent(event.target.value)} required />
         </div>
 
-        <div className="form-grid-2 mb-8">
+        <div className="form-group mb-8">
           <div className="form-group">
             <label className="text-label-md">Điểm</label>
             <input type="number" className="form-input" min={0.1} step={0.1} value={score} onChange={(event) => setScore(Number(event.target.value))} />
-          </div>
-          <div className="form-group">
-            <label className="text-label-md">Thứ tự hiển thị</label>
-            <input type="number" className="form-input" min={1} value={orderIndex} onChange={(event) => setOrderIndex(Number(event.target.value))} />
           </div>
         </div>
 

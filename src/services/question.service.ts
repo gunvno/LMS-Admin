@@ -20,7 +20,9 @@ export type Answer = {
   orderIndex: number;
 };
 
-export type CreateQuestionPayload = Omit<Question, 'id' | 'quizId'>;
+export type CreateQuestionPayload = Omit<Question, 'id' | 'quizId' | 'orderIndex'> & {
+  orderIndex?: number;
+};
 export type CreateAnswerPayload = Omit<Answer, 'id' | 'questionId'>;
 
 type ListParams = {

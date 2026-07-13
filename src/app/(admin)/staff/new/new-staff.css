@@ -84,3 +84,14 @@
 .mb-4 { margin-bottom: 16px; }
 .mt-8 { margin-top: 32px; }
 .p-8 { padding: 32px; }
+
+@media (max-width: 800px) {
+  .form-grid,
+  .role-cards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .permission-row {
+    padding: 14px 16px;
+  }
+}

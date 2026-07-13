@@ -5,7 +5,6 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2, Circle, Edit, Trash2 } from "lucide-react";
 import { Answer, Question, questionService } from "@/services/question.service";
-import "../new/new-question.css";
 
 function sortByOrder<T extends { orderIndex: number }>(items: T[]) {
   return [...items].sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));

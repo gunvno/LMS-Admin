@@ -247,3 +247,20 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+@media (max-width: 600px) {
+  .target-tabs {
+    grid-template-columns: 1fr;
+  }
+
+  .notice-section-title.split,
+  .admin-notice-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .notice-submit,
+  .read-inline-btn {
+    width: 100%;
+  }
+}

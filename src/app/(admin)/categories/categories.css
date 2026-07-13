@@ -149,3 +149,31 @@
 
 .uppercase { text-transform: uppercase; }
 .tracking-wide { letter-spacing: 0.05em; }
+
+@media (max-width: 900px) {
+  .stats-row {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .stat-card {
+    min-width: min(260px, 100%);
+    flex: 1 1 260px;
+  }
+
+  .search-container {
+    width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  .stats-row {
+    flex-direction: column;
+  }
+
+  .stat-card {
+    width: 100%;
+    min-width: 0;
+    padding: 16px;
+  }
+}

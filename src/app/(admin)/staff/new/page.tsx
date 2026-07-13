@@ -31,7 +31,7 @@ export default function NewStaffPage() {
 
     try {
       setSaving(true);
-      const created = await authorService.createStaffAccount({
+      await authorService.createStaffAccount({
         username: finalUsername,
         email,
         password,
@@ -39,7 +39,7 @@ export default function NewStaffPage() {
         lastName,
         phone,
       });
-      router.push(`/staff/${created.userId}`);
+      router.replace("/staff");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Không tạo được nhân sự.");
