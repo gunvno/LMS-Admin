@@ -1,0 +1,82 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.56);
+  backdrop-filter: blur(3px);
+  animation: fadeIn 160ms ease-out;
+}
+
+.modal {
+  width: min(440px, 100%);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 16px;
+  padding: 22px;
+  border: 1px solid #d0d5dd;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 28px 70px rgba(15, 23, 42, 0.24);
+  animation: popIn 180ms ease-out;
+}
+
+.icon {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+}
+
+.icon.danger { color: #b42318; background: #fef3f2; }
+.icon.warning { color: #b54708; background: #fffaeb; }
+.copy h2 { margin: 1px 0 7px; color: #101828; font-size: 19px; line-height: 1.35; }
+.copy p { margin: 0; color: #667085; font-size: 14px; line-height: 1.55; }
+
+.actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.cancel,
+.submit {
+  min-height: 40px;
+  padding: 9px 15px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cancel { color: #344054; border-color: #d0d5dd; background: #fff; }
+.cancel:hover { background: #f9fafb; }
+.submit.danger { color: #fff; background: #d92d20; }
+.submit.danger:hover { background: #b42318; }
+.submit.warning { color: #fff; background: #dc6803; }
+.submit.warning:hover { background: #b54708; }
+.cancel:focus-visible,
+.submit:focus-visible { outline: 3px solid rgba(47, 128, 237, 0.28); outline-offset: 2px; }
+
+@keyframes fadeIn { from { opacity: 0; } }
+@keyframes popIn { from { opacity: 0; transform: translateY(8px) scale(0.98); } }
+
+@media (max-width: 480px) {
+  .backdrop { align-items: end; padding: 12px; }
+  .modal { grid-template-columns: 1fr; gap: 12px; padding: 18px; }
+  .actions { flex-direction: column-reverse; }
+  .cancel,
+  .submit { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backdrop,
+  .modal { animation: none; }
+}

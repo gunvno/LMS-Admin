@@ -2,11 +2,13 @@
 
 import { MouseEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Search, ChevronDown, ChevronLeft, ChevronRight, Edit, Trash2, Eye } from "lucide-react";
+import { Plus, Search, ChevronDown, Edit, Trash2, Eye } from "lucide-react";
 import Link from "next/link";
 import HasPermission from "@/components/HasPermission";
 import CourseSelect from "@/components/forms/CourseSelect";
 import ActionMenu from "@/components/ActionMenu";
+import { useConfirmation } from "@/components/ConfirmationModal";
+import Pagination from "@/components/Pagination";
 import { Course, courseService } from "@/services/course.service";
 import { Lesson, LessonStatus, lessonService } from "@/services/lesson.service";
 import "./lessons.css";
@@ -36,6 +38,7 @@ function statusLabel(status: LessonStatus) {
 }
 
 export default function LessonsPage() {
+  const { confirm } = useConfirmation();
   const router = useRouter();
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -95,7 +98,12 @@ export default function LessonsPage() {
   };
 
   const handleDelete = async (lesson: Lesson) => {
-    if (!window.confirm(`Xóa bài học "${lesson.title}"?`)) return;
+    const accepted = await confirm({
+      title: "Xóa bài học?",
+      description: `Bài học “${lesson.title}” cùng nội dung liên quan sẽ bị xóa và không thể khôi phục.`,
+      confirmLabel: "Xóa bài học",
+    });
+    if (!accepted) return;
 
     try {
       setDeletingId(lesson.id);
@@ -196,14 +204,7 @@ export default function LessonsPage() {
           </table>
         </div>
 
-        <div className="table-footer">
-          <span className="text-body-sm text-on-surface-variant">Hiển thị {filteredLessons.length} trong {totalElements} bài học</span>
-          <div className="pagination">
-            <button className="page-btn"><ChevronLeft size={16} /></button>
-            <button className="page-btn active">1</button>
-            <button className="page-btn"><ChevronRight size={16} /></button>
-          </div>
-        </div>
+        <Pagination summary={`Hiển thị ${filteredLessons.length} trong ${totalElements} bài học`} />
       </div>
     </div>
   );

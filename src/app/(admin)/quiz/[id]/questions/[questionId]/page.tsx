@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2, Circle, Edit, Trash2 } from "lucide-react";
 import { Answer, Question, questionService } from "@/services/question.service";
+import { useConfirmation } from "@/components/ConfirmationModal";
 
 function sortByOrder<T extends { orderIndex: number }>(items: T[]) {
   return [...items].sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
@@ -12,6 +13,7 @@ function sortByOrder<T extends { orderIndex: number }>(items: T[]) {
 
 export default function QuestionDetailPage() {
   const params = useParams<{ id: string; questionId: string }>();
+  const { confirm } = useConfirmation();
   const [question, setQuestion] = useState<Question | null>(null);
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,7 +42,13 @@ export default function QuestionDetailPage() {
   }, [params.questionId]);
 
   const deleteQuestion = async () => {
-    if (!question || !window.confirm("Xóa câu hỏi này?")) return;
+    if (!question) return;
+    const accepted = await confirm({
+      title: "Xóa câu hỏi?",
+      description: "Câu hỏi và các đáp án liên quan sẽ bị xóa. Hành động này không thể hoàn tác.",
+      confirmLabel: "Xóa câu hỏi",
+    });
+    if (!accepted) return;
 
     try {
       setDeleting(true);

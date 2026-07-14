@@ -6,7 +6,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import HasPermission from "@/components/HasPermission";
 import ActionMenu from "@/components/ActionMenu";
-import { BadgeCheck, ChevronDown, ChevronLeft, ChevronRight, Edit, Eye, Plus, Search, Trash2 } from "lucide-react";
+import { useConfirmation } from "@/components/ConfirmationModal";
+import Pagination from "@/components/Pagination";
+import { BadgeCheck, ChevronDown, Edit, Eye, Plus, Search, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getCookie } from "@/lib/api-client";
 import { Course, CourseCategory, CourseStatus, courseService } from "@/services/course.service";
@@ -21,29 +23,38 @@ function CourseThumbnail({ courseId, name }: { courseId: string; name: string; i
 
   useEffect(() => {
     let objectUrl = "";
+    let active = true;
+    const controller = new AbortController();
     const loadImage = async () => {
       const token = getCookie('auth_token');
       if (!token || !courseId) return;
 
       try {
+        const images = await courseService.getCourseImages(courseId, controller.signal);
+        if (!active || !images.some((image) => image.primaryImage && image.status === 'ACTIVE')) return;
+
         const baseUrl = process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:8080';
         const response = await fetch(`${baseUrl}/course/api/v1/courses/${courseId}/images/primary/view`, {
+          signal: controller.signal,
           headers: {
             Authorization: `Bearer ${token}`,
             'Accept-Language': 'vi',
           },
         });
-        if (!response.ok) return;
+        if (!active || !response.ok) return;
         const blob = await response.blob();
+        if (!active) return;
         objectUrl = URL.createObjectURL(blob);
         setSrc(objectUrl);
       } catch {
-        setSrc("");
+        if (active) setSrc("");
       }
     };
 
     loadImage();
     return () => {
+      active = false;
+      controller.abort();
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [courseId]);
@@ -83,6 +94,7 @@ function formatPrice(value?: number) {
 }
 
 export default function CoursesPage() {
+  const { confirm } = useConfirmation();
   const router = useRouter();
   const { hasPermission, isAdmin } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
@@ -144,7 +156,12 @@ export default function CoursesPage() {
   };
 
   const handleDelete = async (course: Course) => {
-    if (!window.confirm(`Xóa khóa học "${course.name}"?`)) return;
+    const accepted = await confirm({
+      title: "Xóa khóa học?",
+      description: `Khóa học “${course.name}” và dữ liệu liên quan sẽ bị xóa. Hành động này không thể hoàn tác.`,
+      confirmLabel: "Xóa khóa học",
+    });
+    if (!accepted) return;
 
     try {
       setDeletingId(course.id);
@@ -159,7 +176,13 @@ export default function CoursesPage() {
   };
 
   const handleApprove = async (course: Course) => {
-    if (!window.confirm(`Duyệt và xuất bản khóa học "${course.name}"?`)) return;
+    const accepted = await confirm({
+      title: "Duyệt và xuất bản?",
+      description: `Khóa học “${course.name}” sẽ được xuất bản và hiển thị cho học viên.`,
+      confirmLabel: "Duyệt và xuất bản",
+      tone: "warning",
+    });
+    if (!accepted) return;
 
     try {
       setApprovingId(course.id);
@@ -293,16 +316,7 @@ export default function CoursesPage() {
           </table>
         </div>
 
-        <div className="table-footer">
-          <span className="text-body-sm text-on-surface-variant">
-            Showing {filteredCourses.length} of {totalElements} entries
-          </span>
-          <div className="pagination">
-            <button className="page-btn" disabled><ChevronLeft size={16} /></button>
-            <button className="page-btn active">1</button>
-            <button className="page-btn" disabled><ChevronRight size={16} /></button>
-          </div>
-        </div>
+        <Pagination summary={`Hiển thị ${filteredCourses.length} trong tổng số ${totalElements} khóa học`} />
       </div>
     </div>
   );

@@ -5,8 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import HasPermission from "@/components/HasPermission";
 import ActionMenu from "@/components/ActionMenu";
+import { useConfirmation } from "@/components/ConfirmationModal";
+import Pagination from "@/components/Pagination";
 import { authorService, StaffAccount } from "@/services/author.service";
-import { Plus, Search, ChevronDown, UserCog, Lock, Key, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Search, ChevronDown, UserCog, Lock, Key } from "lucide-react";
 import "./staff-list.css";
 
 function shouldIgnoreRowClick(target: EventTarget | null) {
@@ -20,6 +22,7 @@ function initials(name?: string) {
 
 export default function StaffPage() {
   const router = useRouter();
+  const { confirm } = useConfirmation();
   const [staff, setStaff] = useState<StaffAccount[]>([]);
   const [keyword, setKeyword] = useState("");
   const [loading, setLoading] = useState(true);
@@ -57,7 +60,12 @@ export default function StaffPage() {
   };
 
   const handleLock = async (account: StaffAccount) => {
-    if (!window.confirm(`Khóa tài khoản "${account.fullName || account.email}"?`)) return;
+    const accepted = await confirm({
+      title: "Khóa tài khoản?",
+      description: `“${account.fullName || account.email}” sẽ không thể đăng nhập cho đến khi tài khoản được mở khóa.`,
+      confirmLabel: "Khóa tài khoản",
+    });
+    if (!accepted) return;
     try {
       setUpdatingId(account.userId);
       await authorService.updateStaffStatus(account.userId, "LOCKED");
@@ -179,16 +187,7 @@ export default function StaffPage() {
           </table>
         </div>
 
-        <div className="table-footer">
-          <span className="text-body-sm text-on-surface-variant">
-            Hiển thị {filteredStaff.length} trong số {staff.length} nhân viên
-          </span>
-          <div className="pagination">
-            <button className="page-btn" disabled><ChevronLeft size={16} /></button>
-            <button className="page-btn active">1</button>
-            <button className="page-btn" disabled><ChevronRight size={16} /></button>
-          </div>
-        </div>
+        <Pagination summary={`Hiển thị ${filteredStaff.length} trong số ${staff.length} nhân viên`} />
       </div>
     </div>
   );

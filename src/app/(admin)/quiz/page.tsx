@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import HasPermission from "@/components/HasPermission";
 import Link from "next/link";
 import CourseSelect from "@/components/forms/CourseSelect";
+import { useConfirmation } from "@/components/ConfirmationModal";
 import { Plus, Search, ChevronDown, Archive, Settings, FileText, Trophy, MoreVertical, Check, Trash2 } from "lucide-react";
 import { Course, courseService } from "@/services/course.service";
 import { Quiz, quizService } from "@/services/quiz.service";
@@ -16,6 +17,7 @@ function statusClass(status?: string) {
 }
 
 export default function QuizManagementPage() {
+  const { confirm } = useConfirmation();
   const [courseFilter, setCourseFilter] = useState("ALL");
   const [keyword, setKeyword] = useState("");
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
@@ -70,7 +72,12 @@ export default function QuizManagementPage() {
   const selectedQuiz = filteredQuizzes.find((quiz) => quiz.id === selectedId) || filteredQuizzes[0];
 
   const handleDelete = async (quiz: Quiz) => {
-    if (!window.confirm(`Xóa quiz "${quiz.title}"?`)) return;
+    const accepted = await confirm({
+      title: "Xóa quiz?",
+      description: `Quiz “${quiz.title}” cùng các câu hỏi liên quan sẽ bị xóa và không thể khôi phục.`,
+      confirmLabel: "Xóa quiz",
+    });
+    if (!accepted) return;
 
     try {
       setDeletingId(quiz.id);

@@ -6,6 +6,7 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import CourseSelect from "@/components/forms/CourseSelect";
 import LessonMediaFields from "@/components/forms/LessonMediaFields";
+import { useConfirmation } from "@/components/ConfirmationModal";
 import {
   CreateLessonPayload,
   LessonResource,
@@ -17,6 +18,7 @@ import "./edit-lesson.css";
 export default function EditLessonPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const { confirm } = useConfirmation();
   const [courseId, setCourseId] = useState("");
   const [title, setTitle] = useState("");
   const [code, setCode] = useState("");
@@ -117,7 +119,12 @@ export default function EditLessonPage() {
   };
 
   const handleDeleteResource = async (resource: LessonResource) => {
-    if (!window.confirm(`Xóa tài liệu “${resource.title}”?`)) return;
+    const accepted = await confirm({
+      title: "Xóa tài liệu đính kèm?",
+      description: `Tài liệu “${resource.title}” sẽ bị xóa khỏi bài học và không thể khôi phục.`,
+      confirmLabel: "Xóa tài liệu",
+    });
+    if (!accepted) return;
     try {
       setSaving(true);
       setError("");

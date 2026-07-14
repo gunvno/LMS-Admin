@@ -4,6 +4,7 @@ import { MouseEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, Download, CheckCircle2, Eye } from "lucide-react";
 import ActionMenu from "@/components/ActionMenu";
+import { useConfirmation } from "@/components/ConfirmationModal";
 import { Course, courseService } from "@/services/course.service";
 import { Enrollment, learningService } from "@/services/learning.service";
 import "./enrollment.css";
@@ -26,6 +27,7 @@ function formatDate(value?: string) {
 
 export default function EnrollmentPage() {
   const router = useRouter();
+  const { confirm } = useConfirmation();
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [keyword, setKeyword] = useState("");
@@ -77,7 +79,13 @@ export default function EnrollmentPage() {
   };
 
   const handleComplete = async (enrollment: Enrollment) => {
-    if (!window.confirm("Đánh dấu hoàn thành enrollment này?")) return;
+    const accepted = await confirm({
+      title: "Đánh dấu hoàn thành?",
+      description: "Ghi danh này sẽ được chuyển sang trạng thái hoàn thành. Hãy kiểm tra tiến độ học trước khi tiếp tục.",
+      confirmLabel: "Đánh dấu hoàn thành",
+      tone: "warning",
+    });
+    if (!accepted) return;
 
     try {
       setCompletingId(enrollment.id);

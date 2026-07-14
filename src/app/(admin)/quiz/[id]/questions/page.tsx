@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, CheckCircle2, Circle, Edit, Eye, Plus, Trash2 } from "lucide-react";
 import { Answer, Question, questionService } from "@/services/question.service";
 import { Quiz, quizService } from "@/services/quiz.service";
+import { useConfirmation } from "@/components/ConfirmationModal";
 
 function sortByOrder<T extends { orderIndex: number }>(items: T[]) {
   return [...items].sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
@@ -13,6 +14,7 @@ function sortByOrder<T extends { orderIndex: number }>(items: T[]) {
 
 export default function QuizQuestionsPage() {
   const params = useParams<{ id: string }>();
+  const { confirm } = useConfirmation();
   const searchParams = useSearchParams();
   const refreshKey = searchParams.get("refresh");
   const [quiz, setQuiz] = useState<Quiz | null>(null);
@@ -62,7 +64,12 @@ export default function QuizQuestionsPage() {
   }, [loadData]);
 
   const handleDeleteQuestion = async (question: Question) => {
-    if (!window.confirm("Xóa câu hỏi này? Các đáp án liên quan có thể vẫn còn trong database nếu backend chưa cascade.")) return;
+    const accepted = await confirm({
+      title: "Xóa câu hỏi?",
+      description: "Câu hỏi và các đáp án liên quan sẽ bị xóa. Hành động này không thể hoàn tác.",
+      confirmLabel: "Xóa câu hỏi",
+    });
+    if (!accepted) return;
 
     try {
       setDeletingId(question.id);

@@ -2,11 +2,13 @@
 "use client";
 
 import { MouseEvent, useEffect, useMemo, useState } from "react";
-import { Plus, Search, CheckCircle2, ChevronLeft, ChevronRight, LayoutGrid, Monitor, Palette, Megaphone, Wallet, Edit, Trash2 } from "lucide-react";
+import { Plus, Search, CheckCircle2, LayoutGrid, Monitor, Palette, Megaphone, Wallet, Edit, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import HasPermission from "@/components/HasPermission";
 import ActionMenu from "@/components/ActionMenu";
+import { useConfirmation } from "@/components/ConfirmationModal";
+import Pagination from "@/components/Pagination";
 import { CourseCategory, courseService } from "@/services/course.service";
 import "./categories.css";
 
@@ -23,6 +25,7 @@ function statusClass(status: string) {
 
 export default function CategoriesPage() {
   const router = useRouter();
+  const { confirm } = useConfirmation();
   const [categories, setCategories] = useState<CourseCategory[]>([]);
   const [totalElements, setTotalElements] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -54,7 +57,12 @@ export default function CategoriesPage() {
   };
 
   const handleDelete = async (category: CourseCategory) => {
-    if (!window.confirm(`Xóa danh mục "${category.name}"?`)) return;
+    const accepted = await confirm({
+      title: "Xóa danh mục?",
+      description: `Danh mục “${category.name}” sẽ bị xóa và không thể khôi phục.`,
+      confirmLabel: "Xóa danh mục",
+    });
+    if (!accepted) return;
 
     try {
       setDeletingId(category.id);
@@ -199,16 +207,7 @@ export default function CategoriesPage() {
           </table>
         </div>
 
-        <div className="table-footer">
-          <span className="text-body-sm text-on-surface-variant">
-            Hiển thị <strong>{filteredCategories.length}</strong> trong số <strong>{totalElements}</strong> danh mục
-          </span>
-          <div className="pagination">
-            <button className="page-btn" disabled><ChevronLeft size={16} /></button>
-            <button className="page-btn active">1</button>
-            <button className="page-btn" disabled><ChevronRight size={16} /></button>
-          </div>
-        </div>
+        <Pagination summary={<>Hiển thị <strong>{filteredCategories.length}</strong> trong số <strong>{totalElements}</strong> danh mục</>} />
       </div>
     </div>
   );

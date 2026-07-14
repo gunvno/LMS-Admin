@@ -165,4 +165,11 @@ export const courseService = {
       body: formData,
     });
   },
+
+  getCourseImages: (courseId: string, signal?: AbortSignal): Promise<ImageDto[]> => {
+    return apiClient<ImageDto[]>(`/course/api/v1/courses/${courseId}/images`, {
+      method: 'GET',
+      signal,
+    });
+  },
 };
