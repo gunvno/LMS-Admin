@@ -16,6 +16,7 @@ import {
   NoticeType,
   noticeService,
 } from "@/services/notice.service";
+import { formatDateTime } from "@/lib/date";
 import "./notices.css";
 
 const noticeTypes: NoticeType[] = [
@@ -48,16 +49,6 @@ function splitUserIds(value: string) {
     .split(/[\n,]/)
     .map((item) => item.trim())
     .filter(Boolean);
-}
-
-function formatDate(value?: string) {
-  if (!value) return "Chưa gửi";
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return "Chưa gửi";
-  return new Intl.DateTimeFormat("vi-VN", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(date);
 }
 
 function statusClass(notice: NoticeDto) {
@@ -337,7 +328,7 @@ export default function NoticesPage() {
                   <span className={statusClass(notice)}>
                     {notice.readStatus === "UNREAD" ? "Chưa đọc" : notice.deliveryStatus}
                   </span>
-                  <span>{formatDate(notice.sentAt)}</span>
+                  <span>{formatDateTime(notice.sentAt, "Chưa gửi")}</span>
                 </div>
                 <h3>{notice.title}</h3>
                 <p>{notice.content}</p>

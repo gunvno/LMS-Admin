@@ -72,6 +72,90 @@
 
 .text-outline { color: var(--outline); }
 
+.verify-result-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.verify-result-card > div {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 6px 12px;
+}
+
+.verify-result-card strong,
+.verify-result-card p {
+  overflow-wrap: anywhere;
+}
+
+.verify-result-card p {
+  grid-column: 2;
+  color: var(--on-surface-variant);
+  font-size: 14px;
+}
+
+.certificate-code-display {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 100%;
+  padding: 10px 14px;
+  border: 1px dashed #93c5fd;
+  border-radius: 10px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 15px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.certificate-validity-card {
+  padding: 20px;
+  border: 1px solid #bbf7d0;
+  border-radius: 12px;
+  background: linear-gradient(145deg, #f0fdf4, #ffffff);
+}
+
+.certificate-validity-card.revoked {
+  border-color: #fecaca;
+  background: linear-gradient(145deg, #fef2f2, #ffffff);
+}
+
+.certificate-validity-icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 14px;
+  border-radius: 14px;
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.certificate-validity-card.revoked .certificate-validity-icon {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.certificate-validity-card h2 {
+  margin-bottom: 6px;
+  font-size: 18px;
+}
+
+.certificate-validity-card p {
+  color: var(--on-surface-variant);
+  font-size: 14px;
+  line-height: 21px;
+}
+
 @media (max-width: 1000px) {
   .stats-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -86,7 +170,19 @@
   }
 
   .list-section-header {
+    flex-direction: column;
     align-items: stretch;
     gap: 12px;
+  }
+
+  .list-section-header .header-actions,
+  .verify-result-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .list-section-header .form-input {
+    min-width: 0 !important;
+    width: 100%;
   }
 }

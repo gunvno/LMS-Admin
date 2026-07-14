@@ -4,18 +4,13 @@ import { useEffect, useMemo, useState } from "react";
 import { CreditCard, FileText, RefreshCw, Search } from "lucide-react";
 import { paymentService, Payment, Invoice } from "@/services/payment.service";
 import { useAuth } from "@/contexts/AuthContext";
+import { formatDateTime } from "@/lib/date";
 import "./payments.css";
 
 type Tab = "payments" | "invoices";
 
 function formatMoney(value: number) {
   return `${Number(value || 0).toLocaleString("vi-VN")}đ`;
-}
-
-function formatDate(value?: string) {
-  if (!value) return "-";
-  const date = new Date(value);
-  return Number.isFinite(date.getTime()) ? date.toLocaleString("vi-VN") : "-";
 }
 
 function statusClass(status: string) {
@@ -93,9 +88,9 @@ export default function PaymentsPage() {
       <div className="card table-card mt-4">
         <div className="table-responsive">
           {loading ? <div className="p-4">Đang tải dữ liệu thanh toán...</div> : tab === "payments" ? (
-            <table className="data-table"><thead><tr><th>User ID</th><th>Course ID</th><th>Mã PayOS</th><th>Số tiền</th><th>Provider</th><th>Trạng thái</th><th>Ngày tạo</th></tr></thead><tbody>{filteredPayments.length === 0 ? <tr><td colSpan={7}>Không có giao dịch phù hợp.</td></tr> : filteredPayments.map((item) => <tr key={item.id}><td>{item.userId}</td><td>{item.courseId}</td><td>{item.providerOrderCode || "-"}<small>{item.invoiceCode || "Chưa có hóa đơn"}</small></td><td>{formatMoney(item.amount)}</td><td>{item.provider}</td><td><span className={`status-badge ${statusClass(item.status)}`}>{item.status}</span></td><td>{formatDate(item.createdDate || item.paidAt)}</td></tr>)}</tbody></table>
+            <table className="data-table"><thead><tr><th>User ID</th><th>Course ID</th><th>Mã PayOS</th><th>Số tiền</th><th>Provider</th><th>Trạng thái</th><th>Ngày tạo</th></tr></thead><tbody>{filteredPayments.length === 0 ? <tr><td colSpan={7}>Không có giao dịch phù hợp.</td></tr> : filteredPayments.map((item) => <tr key={item.id}><td>{item.userId}</td><td>{item.courseId}</td><td>{item.providerOrderCode || "-"}<small>{item.invoiceCode || "Chưa có hóa đơn"}</small></td><td>{formatMoney(item.amount)}</td><td>{item.provider}</td><td><span className={`status-badge ${statusClass(item.status)}`}>{item.status}</span></td><td>{formatDateTime(item.createdDate || item.paidAt)}</td></tr>)}</tbody></table>
           ) : (
-            <table className="data-table"><thead><tr><th>Mã hóa đơn</th><th>User ID</th><th>Course ID</th><th>Số tiền</th><th>Provider</th><th>Trạng thái</th><th>Ngày phát hành</th></tr></thead><tbody>{filteredInvoices.length === 0 ? <tr><td colSpan={7}>Chưa có hóa đơn.</td></tr> : filteredInvoices.map((item) => <tr key={item.id}><td><strong>{item.invoiceCode}</strong><small>Payment: {item.paymentId}</small></td><td>{item.userId}</td><td>{item.courseId}</td><td>{formatMoney(item.amount)}</td><td>{item.provider}</td><td><span className={`status-badge ${statusClass(item.status)}`}>{item.status}</span></td><td>{formatDate(item.issuedAt)}</td></tr>)}</tbody></table>
+            <table className="data-table"><thead><tr><th>Mã hóa đơn</th><th>User ID</th><th>Course ID</th><th>Số tiền</th><th>Provider</th><th>Trạng thái</th><th>Ngày phát hành</th></tr></thead><tbody>{filteredInvoices.length === 0 ? <tr><td colSpan={7}>Chưa có hóa đơn.</td></tr> : filteredInvoices.map((item) => <tr key={item.id}><td><strong>{item.invoiceCode}</strong><small>Payment: {item.paymentId}</small></td><td>{item.userId}</td><td>{item.courseId}</td><td>{formatMoney(item.amount)}</td><td>{item.provider}</td><td><span className={`status-badge ${statusClass(item.status)}`}>{item.status}</span></td><td>{formatDateTime(item.issuedAt)}</td></tr>)}</tbody></table>
           )}
         </div>
         <div className="table-footer"><span className="text-body-sm text-on-surface-variant">Dữ liệu lấy trực tiếp từ billing-service.</span></div>

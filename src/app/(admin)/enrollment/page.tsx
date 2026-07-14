@@ -7,6 +7,7 @@ import ActionMenu from "@/components/ActionMenu";
 import { useConfirmation } from "@/components/ConfirmationModal";
 import { Course, courseService } from "@/services/course.service";
 import { Enrollment, learningService } from "@/services/learning.service";
+import { formatDate } from "@/lib/date";
 import "./enrollment.css";
 
 function shouldIgnoreRowClick(target: EventTarget | null) {
@@ -17,12 +18,6 @@ function statusClass(status: string) {
   if (status === "COMPLETED") return "status-success-light";
   if (status === "ACTIVE") return "status-pending-gray";
   return "status-error-light";
-}
-
-function formatDate(value?: string) {
-  if (!value) return "-";
-  const date = new Date(value);
-  return Number.isFinite(date.getTime()) ? date.toLocaleDateString("vi-VN") : "-";
 }
 
 export default function EnrollmentPage() {
@@ -89,7 +84,7 @@ export default function EnrollmentPage() {
 
     try {
       setCompletingId(enrollment.id);
-      const updated = await learningService.completeEnrollment(enrollment.id);
+      const updated = await learningService.completeCourse(enrollment.courseId);
       setEnrollments((prev) => prev.map((item) => item.id === enrollment.id ? { ...item, ...updated } : item));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Không hoàn thành được enrollment.");

@@ -1,24 +1,21 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Filter, Search, Folder, Clock, CheckCircle2, Ban, ShieldCheck } from "lucide-react";
+import { Filter, Search, Folder, CheckCircle2, Ban, ShieldCheck } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Course, courseService } from "@/services/course.service";
 import { Certificate, learningService } from "@/services/learning.service";
+import { formatDate } from "@/lib/date";
 import "./certificates.css";
 
-function formatDate(value?: string) {
-  if (!value) return "-";
-  const date = new Date(value);
-  return Number.isFinite(date.getTime()) ? date.toLocaleDateString("vi-VN") : "-";
-}
-
 function statusClass(status: string) {
-  if (status === "ACTIVE") return "status-success-light";
-  if (status === "EXPIRED") return "status-pending";
+  if (status === "ISSUED") return "status-success-light";
   return "status-error-light";
 }
 
 export default function CertificatesPage() {
+  const router = useRouter();
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [keyword, setKeyword] = useState("");
@@ -34,7 +31,7 @@ export default function CertificatesPage() {
         setLoading(true);
         setError("");
         const [certificatePage, coursePage] = await Promise.all([
-          learningService.getMyCertificates({ page: 0, size: 100 }),
+          learningService.getCertificates({ page: 0, size: 100 }),
           courseService.getCourses({ page: 0, size: 100 }),
         ]);
         setCertificates(certificatePage.content || []);
@@ -87,7 +84,7 @@ export default function CertificatesPage() {
       <div className="page-header">
         <div className="header-titles">
           <h1 className="text-headline-lg">Quản lý Chứng chỉ</h1>
-          <p className="text-body-md text-on-surface-variant mt-2">Xem chứng chỉ của tài khoản hiện tại và xác minh chứng chỉ theo mã.</p>
+          <p className="text-body-md text-on-surface-variant mt-2">Theo dõi toàn bộ chứng chỉ đã cấp và xác minh nhanh bằng mã chứng chỉ.</p>
         </div>
         <div className="header-actions">
           <button className="btn btn-secondary action-btn"><Filter size={18} /> Lọc</button>
@@ -106,17 +103,10 @@ export default function CertificatesPage() {
           </div>
           <div className="stat-icon" style={{ backgroundColor: 'var(--primary)' }}><Folder size={20} color="#ffffff" /></div>
         </div>
-        <div className="card stat-card" style={{ backgroundColor: '#fef3f2' }}>
-          <div className="stat-info">
-            <span className="text-label-sm text-outline uppercase tracking-wide">HẾT HẠN</span>
-            <span className="text-headline-lg mt-1" style={{ color: '#ea580c' }}>{certificates.filter((item) => item.status === "EXPIRED").length}</span>
-          </div>
-          <div className="stat-icon" style={{ backgroundColor: '#ffedd5' }}><Clock size={20} color="#ea580c" /></div>
-        </div>
         <div className="card stat-card" style={{ backgroundColor: '#f0fdf4' }}>
           <div className="stat-info">
-            <span className="text-label-sm text-outline uppercase tracking-wide">CÒN HIỆU LỰC</span>
-            <span className="text-headline-lg mt-1" style={{ color: '#16a34a' }}>{certificates.filter((item) => item.status === "ACTIVE").length}</span>
+            <span className="text-label-sm text-outline uppercase tracking-wide">ĐÃ CẤP</span>
+            <span className="text-headline-lg mt-1" style={{ color: '#16a34a' }}>{certificates.filter((item) => item.status === "ISSUED").length}</span>
           </div>
           <div className="stat-icon" style={{ backgroundColor: '#dcfce7' }}><CheckCircle2 size={20} color="#16a34a" /></div>
         </div>
@@ -141,8 +131,15 @@ export default function CertificatesPage() {
       </div>
 
       {verifyResult && (
-        <div className="card p-4 mt-4">
-          <strong>Kết quả:</strong> {verifyResult.certificateCode} - {verifyResult.status} - Course {courseNameById[verifyResult.courseId] || verifyResult.courseId}
+        <div className="card verify-result-card mt-4">
+          <div>
+            <span className={`status-badge ${statusClass(verifyResult.status)}`}>● {verifyResult.status}</span>
+            <strong>{verifyResult.certificateCode}</strong>
+            <p>{courseNameById[verifyResult.courseId] || verifyResult.courseId}</p>
+          </div>
+          <Link className="btn btn-secondary btn-sm" href={`/certificates/${encodeURIComponent(verifyResult.certificateCode)}`}>
+            Xem chi tiết
+          </Link>
         </div>
       )}
       {error && <div className="card p-4 mt-4 text-status-required">{error}</div>}
@@ -152,25 +149,27 @@ export default function CertificatesPage() {
           <table className="data-table">
             <thead>
               <tr>
-                <th style={{ width: '22%' }}>Certificate Code</th>
-                <th style={{ width: '20%' }}>User ID</th>
-                <th style={{ width: '24%' }}>Khóa học</th>
-                <th style={{ width: '14%' }}>Ngày cấp</th>
+                <th style={{ width: '24%' }}>Certificate Code</th>
+                <th style={{ width: '22%' }}>User ID</th>
+                <th style={{ width: '26%' }}>Khóa học</th>
+                <th style={{ width: '16%' }}>Ngày cấp</th>
                 <th style={{ width: '12%' }}>Trạng thái</th>
-                <th style={{ width: '8%' }}>Thao tác</th>
               </tr>
             </thead>
             <tbody>
-              {loading && <tr><td colSpan={6}>Đang tải chứng chỉ...</td></tr>}
-              {!loading && filteredCertificates.length === 0 && <tr><td colSpan={6}>Chưa có chứng chỉ phù hợp.</td></tr>}
+              {loading && <tr><td colSpan={5}>Đang tải chứng chỉ...</td></tr>}
+              {!loading && filteredCertificates.length === 0 && <tr><td colSpan={5}>Chưa có chứng chỉ phù hợp.</td></tr>}
               {!loading && filteredCertificates.map((certificate) => (
-                <tr key={certificate.id}>
+                <tr
+                  key={certificate.id}
+                  className="clickable-row"
+                  onClick={() => router.push(`/certificates/${encodeURIComponent(certificate.certificateCode)}`)}
+                >
                   <td className="text-label-md text-primary">{certificate.certificateCode}</td>
                   <td className="text-body-md text-on-surface-variant">{certificate.userId}</td>
                   <td className="text-body-md text-on-surface-variant">{courseNameById[certificate.courseId] || certificate.courseId}</td>
                   <td className="text-body-md text-on-surface-variant">{formatDate(certificate.issuedAt)}</td>
                   <td><span className={`status-badge ${statusClass(certificate.status)}`}>● {certificate.status}</span></td>
-                  <td><button className="btn btn-secondary btn-sm" style={{ border: 'none', color: 'var(--outline)' }} onClick={() => setVerifyCode(certificate.certificateCode)}>Xem</button></td>
                 </tr>
               ))}
             </tbody>
@@ -178,7 +177,7 @@ export default function CertificatesPage() {
         </div>
 
         <div className="table-footer">
-          <span className="text-body-sm text-on-surface-variant">Hiển thị {filteredCertificates.length} chứng chỉ. Backend hiện có API my-certificates và verify theo code.</span>
+          <span className="text-body-sm text-on-surface-variant">Hiển thị {filteredCertificates.length} chứng chỉ trong hệ thống.</span>
         </div>
       </div>
     </div>

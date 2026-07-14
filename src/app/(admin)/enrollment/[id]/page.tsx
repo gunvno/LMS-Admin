@@ -7,12 +7,7 @@ import Link from "next/link";
 import { ArrowLeft, CheckCircle2, UserRound, BookOpen, CalendarDays } from "lucide-react";
 import { Course, courseService } from "@/services/course.service";
 import { Enrollment, learningService } from "@/services/learning.service";
-
-function formatDate(value?: string) {
-  if (!value) return "-";
-  const date = new Date(value);
-  return Number.isFinite(date.getTime()) ? date.toLocaleDateString("vi-VN") : "-";
-}
+import { formatDate } from "@/lib/date";
 
 export default function EnrollmentDetailPage() {
   const params = useParams<{ id: string }>();
