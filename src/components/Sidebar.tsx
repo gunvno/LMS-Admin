@@ -18,6 +18,7 @@ import {
   CreditCard,
   Menu,
   X,
+  MessagesSquare,
 } from "lucide-react";
 import "./Sidebar.css";
 import { useAuth } from "@/contexts/AuthContext";
@@ -29,6 +30,7 @@ const navItems = [
   { name: "Lessons", href: "/lessons", icon: BookOpen },
   { name: "Quiz", href: "/quiz", icon: HelpCircle },
   { name: "Enrollment", href: "/enrollment", icon: Users },
+  { name: "Messages", href: "/messages", icon: MessagesSquare },
   { name: "Payments", href: "/payments", icon: CreditCard, adminOnly: true },
   { name: "Certificates", href: "/certificates", icon: Badge },
   { name: "Notices", href: "/notices", icon: Bell, adminOnly: true },
