@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { CreditCard, FileText, RefreshCw, Search } from "lucide-react";
 import { paymentService, Payment, Invoice } from "@/services/payment.service";
 import { useAuth } from "@/contexts/AuthContext";
@@ -28,7 +28,7 @@ export default function PaymentsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!isAdmin) return;
     try {
       setLoading(true);
@@ -44,13 +44,13 @@ export default function PaymentsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isAdmin]);
 
-  useEffect(() => { if (isAdmin) loadData(); }, [isAdmin]);
-
-  if (!isAdmin) {
-    return <div className="page-container"><div className="card p-6">Bạn không có quyền xem giao dịch, hóa đơn hoặc doanh thu toàn hệ thống.</div></div>;
-  }
+  useEffect(() => {
+    if (!isAdmin) return;
+    const timer = window.setTimeout(() => void loadData(), 0);
+    return () => window.clearTimeout(timer);
+  }, [isAdmin, loadData]);
 
   const filteredPayments = useMemo(() => {
     const term = keyword.trim().toLowerCase();
@@ -61,6 +61,10 @@ export default function PaymentsPage() {
     const term = keyword.trim().toLowerCase();
     return invoices.filter((item) => !term || [item.userId, item.courseId, item.invoiceCode, item.providerTransactionId, item.status].some((value) => value?.toLowerCase().includes(term)));
   }, [invoices, keyword]);
+
+  if (!isAdmin) {
+    return <div className="page-container"><div className="card p-6">Bạn không có quyền xem giao dịch, hóa đơn hoặc doanh thu toàn hệ thống.</div></div>;
+  }
 
   return (
     <div className="page-container">

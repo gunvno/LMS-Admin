@@ -18,7 +18,7 @@ export default function NewQuizPage() {
   const [passScore, setPassScore] = useState(70);
   const [maxAttempts, setMaxAttempts] = useState(3);
   const [requiredToComplete, setRequiredToComplete] = useState(true);
-  const [status, setStatus] = useState<QuizStatus>("ACTIVE");
+  const [status, setStatus] = useState<QuizStatus>("DRAFT");
   const [loadingLessons, setLoadingLessons] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");

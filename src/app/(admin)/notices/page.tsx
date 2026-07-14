@@ -95,7 +95,8 @@ export default function NoticesPage() {
   };
 
   useEffect(() => {
-    loadInbox();
+    const timer = window.setTimeout(() => void loadInbox(), 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {

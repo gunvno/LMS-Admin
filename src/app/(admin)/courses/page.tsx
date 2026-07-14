@@ -1,5 +1,6 @@
 
 "use client";
+/* eslint-disable @next/next/no-img-element -- Course images are served by the LMS API. */
 
 import { MouseEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
