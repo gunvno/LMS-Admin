@@ -49,5 +49,5 @@ export const paymentService = {
     apiClient<PageData<Payment>>(`/billing/api/v1/admin/payments?page=${page}&size=${size}`),
 
   getAdminInvoices: (page = 0, size = 100): Promise<PageData<Invoice>> =>
-    apiClient<PageData<Invoice>>(`/invoice/api/v1/admin/invoices?page=${page}&size=${size}`),
+    apiClient<PageData<Invoice>>(`/billing/api/v1/admin/invoices?page=${page}&size=${size}`),
 };
