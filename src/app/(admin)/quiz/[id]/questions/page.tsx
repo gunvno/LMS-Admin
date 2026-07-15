@@ -7,6 +7,9 @@ import { ArrowLeft, CheckCircle2, Circle, Edit, Eye, Plus, Trash2 } from "lucide
 import { Answer, Question, questionService } from "@/services/question.service";
 import { Quiz, quizService } from "@/services/quiz.service";
 import { useConfirmation } from "@/components/ConfirmationModal";
+import HasPermission from "@/components/HasPermission";
+import { useAuth } from "@/contexts/AuthContext";
+import { PERMISSION } from "@/lib/permissions";
 
 function sortByOrder<T extends { orderIndex: number }>(items: T[]) {
   return [...items].sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
@@ -15,6 +18,8 @@ function sortByOrder<T extends { orderIndex: number }>(items: T[]) {
 export default function QuizQuestionsPage() {
   const params = useParams<{ id: string }>();
   const { confirm } = useConfirmation();
+  const { hasPermission } = useAuth();
+  const canManageQuestions = hasPermission(PERMISSION.QUESTION_MANAGE);
   const searchParams = useSearchParams();
   const refreshKey = searchParams.get("refresh");
   const [quiz, setQuiz] = useState<Quiz | null>(null);
@@ -64,6 +69,8 @@ export default function QuizQuestionsPage() {
   }, [loadData]);
 
   const handleDeleteQuestion = async (question: Question) => {
+    if (!canManageQuestions) return;
+
     const accepted = await confirm({
       title: "Xóa câu hỏi?",
       description: "Câu hỏi và các đáp án liên quan sẽ bị xóa. Hành động này không thể hoàn tác.",
@@ -103,9 +110,11 @@ export default function QuizQuestionsPage() {
           </div>
         </div>
         <div className="header-actions">
-          <Link href={`/quiz/${params.id}/questions/new`} className="btn btn-primary action-btn">
-            <Plus size={18} /> Thêm câu hỏi
-          </Link>
+          <HasPermission required={["QUESTION_MANAGE", "ANSWER_MANAGE"]} mode="all">
+            <Link href={`/quiz/${params.id}/questions/new`} className="btn btn-primary action-btn">
+              <Plus size={18} /> Thêm câu hỏi
+            </Link>
+          </HasPermission>
         </div>
       </div>
 
@@ -139,18 +148,22 @@ export default function QuizQuestionsPage() {
                     <Link className="icon-btn text-outline" href={`/quiz/${params.id}/questions/${question.id}`} title="Xem chi tiết">
                       <Eye size={18} />
                     </Link>
-                    <Link className="icon-btn text-primary" href={`/quiz/${params.id}/questions/${question.id}/edit`} title="Sửa câu hỏi">
-                      <Edit size={18} />
-                    </Link>
-                    <button
-                      type="button"
-                      className="icon-btn text-status-required"
-                      disabled={deletingId === question.id}
-                      onClick={() => handleDeleteQuestion(question)}
-                      title="Xóa câu hỏi"
-                    >
-                      <Trash2 size={18} />
-                    </button>
+                    <HasPermission required={["QUESTION_MANAGE", "ANSWER_MANAGE"]} mode="all">
+                      <Link className="icon-btn text-primary" href={`/quiz/${params.id}/questions/${question.id}/edit`} title="Sửa câu hỏi">
+                        <Edit size={18} />
+                      </Link>
+                    </HasPermission>
+                    <HasPermission required="QUESTION_MANAGE">
+                      <button
+                        type="button"
+                        className="icon-btn text-status-required"
+                        disabled={deletingId === question.id}
+                        onClick={() => handleDeleteQuestion(question)}
+                        title="Xóa câu hỏi"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </HasPermission>
                   </div>
                 </div>
 

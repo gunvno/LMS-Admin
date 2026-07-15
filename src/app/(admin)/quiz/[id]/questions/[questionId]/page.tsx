@@ -6,6 +6,9 @@ import Link from "next/link";
 import { ArrowLeft, CheckCircle2, Circle, Edit, Trash2 } from "lucide-react";
 import { Answer, Question, questionService } from "@/services/question.service";
 import { useConfirmation } from "@/components/ConfirmationModal";
+import HasPermission from "@/components/HasPermission";
+import { useAuth } from "@/contexts/AuthContext";
+import { PERMISSION } from "@/lib/permissions";
 
 function sortByOrder<T extends { orderIndex: number }>(items: T[]) {
   return [...items].sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
@@ -14,6 +17,8 @@ function sortByOrder<T extends { orderIndex: number }>(items: T[]) {
 export default function QuestionDetailPage() {
   const params = useParams<{ id: string; questionId: string }>();
   const { confirm } = useConfirmation();
+  const { hasPermission } = useAuth();
+  const canManageQuestions = hasPermission(PERMISSION.QUESTION_MANAGE);
   const [question, setQuestion] = useState<Question | null>(null);
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,7 +47,7 @@ export default function QuestionDetailPage() {
   }, [params.questionId]);
 
   const deleteQuestion = async () => {
-    if (!question) return;
+    if (!question || !canManageQuestions) return;
     const accepted = await confirm({
       title: "Xóa câu hỏi?",
       description: "Câu hỏi và các đáp án liên quan sẽ bị xóa. Hành động này không thể hoàn tác.",
@@ -75,12 +80,16 @@ export default function QuestionDetailPage() {
         </div>
         {question && (
           <div className="header-actions">
-            <Link href={`/quiz/${params.id}/questions/${question.id}/edit`} className="btn btn-primary action-btn">
-              <Edit size={18} /> Sửa câu hỏi
-            </Link>
-            <button className="btn btn-secondary action-btn text-status-required" onClick={deleteQuestion} disabled={deleting}>
-              <Trash2 size={18} /> {deleting ? "Đang xóa..." : "Xóa"}
-            </button>
+            <HasPermission required={["QUESTION_MANAGE", "ANSWER_MANAGE"]} mode="all">
+              <Link href={`/quiz/${params.id}/questions/${question.id}/edit`} className="btn btn-primary action-btn">
+                <Edit size={18} /> Sửa câu hỏi
+              </Link>
+            </HasPermission>
+            <HasPermission required="QUESTION_MANAGE">
+              <button className="btn btn-secondary action-btn text-status-required" onClick={deleteQuestion} disabled={deleting}>
+                <Trash2 size={18} /> {deleting ? "Đang xóa..." : "Xóa"}
+              </button>
+            </HasPermission>
           </div>
         )}
       </div>

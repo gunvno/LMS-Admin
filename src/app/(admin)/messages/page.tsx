@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { MessageCircle, Send } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { connectSupportChat } from "@/services/support-chat-websocket";
@@ -39,11 +39,11 @@ export default function InstructorMessagesPage() {
   const endRef = useRef<HTMLDivElement>(null);
   const selected = conversations.find((conversation) => conversation.id === selectedId);
 
-  const loadConversations = async () => {
+  const loadConversations = useCallback(async () => {
     const items = await supportChatService.getConversations();
     setConversations(items || []);
     setSelectedId((current) => current || items?.[0]?.id || "");
-  };
+  }, []);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -52,7 +52,7 @@ export default function InstructorMessagesPage() {
         .finally(() => setLoading(false));
     }, 0);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [loadConversations]);
 
   useEffect(() => {
     if (!selectedId) return;
@@ -73,7 +73,7 @@ export default function InstructorMessagesPage() {
       alive = false;
       disconnect();
     };
-  }, [selectedId]);
+  }, [loadConversations, selectedId]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });

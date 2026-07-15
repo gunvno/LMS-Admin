@@ -17,12 +17,16 @@ import {
 import { Course, courseService } from "@/services/course.service";
 import { Certificate, learningService } from "@/services/learning.service";
 import { formatDateTime } from "@/lib/date";
+import { useAuth } from "@/contexts/AuthContext";
+import { PERMISSION } from "@/lib/permissions";
 import "../../detail.css";
 import "../certificates.css";
 
 export default function CertificateDetailPage() {
   const params = useParams<{ code: string }>();
   const certificateCode = params.code;
+  const { hasPermission } = useAuth();
+  const canViewCourses = hasPermission(PERMISSION.COURSE_VIEW);
   const [certificate, setCertificate] = useState<Certificate | null>(null);
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
@@ -36,7 +40,9 @@ export default function CertificateDetailPage() {
         setError("");
         const certificateData = await learningService.verifyCertificate(certificateCode);
         setCertificate(certificateData);
-        const courseData = await courseService.getCourse(certificateData.courseId).catch(() => null);
+        const courseData = canViewCourses
+          ? await courseService.getCourse(certificateData.courseId).catch(() => null)
+          : null;
         setCourse(courseData);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Không tải được chi tiết chứng chỉ.");
@@ -46,7 +52,7 @@ export default function CertificateDetailPage() {
     };
 
     loadData();
-  }, [certificateCode]);
+  }, [canViewCourses, certificateCode]);
 
   const copyCode = async () => {
     if (!certificate) return;
@@ -134,7 +140,11 @@ export default function CertificateDetailPage() {
                 <div className="detail-list compact">
                   <div className="detail-list-row">
                     <span>Khóa học</span>
-                    <strong><Link className="text-primary" href={`/courses/${certificate.courseId}`}>{course?.name || certificate.courseId}</Link></strong>
+                    <strong>
+                      {canViewCourses
+                        ? <Link className="text-primary" href={`/courses/${certificate.courseId}`}>{course?.name || certificate.courseId}</Link>
+                        : certificate.courseId}
+                    </strong>
                   </div>
                 </div>
               </section>

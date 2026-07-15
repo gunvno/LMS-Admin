@@ -1,19 +1,22 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useCallback, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { clearAuthCookies } from '@/lib/api-client';
 import { authService, UserInfo } from '@/services/auth.service';
 import { authorService } from '@/services/author.service';
+import {
+  hasRequiredPermission,
+  normalizePermissions,
+  type PermissionCode,
+  type PermissionMode,
+} from '@/lib/permissions';
 
 interface AuthContextType {
   user: UserInfo | null;
   roles: string[];
   permissions: string[];
-  isAdmin: boolean;
-  hasRole: (requiredRole: string | string[]) => boolean;
-  hasPermission: (requiredPerm: string | string[]) => boolean;
-  setPermissions: (perms: string[]) => void;
+  hasPermission: (requiredPerm: PermissionCode | readonly PermissionCode[], mode?: PermissionMode) => boolean;
   loading: boolean;
 }
 
@@ -21,10 +24,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   roles: [],
   permissions: [],
-  isAdmin: false,
-  hasRole: () => false,
   hasPermission: () => false,
-  setPermissions: () => {},
   loading: true,
 });
 
@@ -42,6 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [roles, setRoles] = useState<string[]>([]);
   const [permissions, setPermissions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [authorized, setAuthorized] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -55,7 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!canAccessAdmin(userRoles || [])) {
           await authService.logout().catch(() => undefined);
           clearAuthCookies();
-          router.push('/');
+          router.replace('/');
           return;
         }
 
@@ -64,10 +65,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           roles: userRoles || [],
         });
         setRoles(userRoles || []);
-        setPermissions(userPerms || []);
+        setPermissions(normalizePermissions(userPerms));
+        setAuthorized(true);
       } catch {
+        setAuthorized(false);
         clearAuthCookies();
-        router.push('/');
+        router.replace('/');
       } finally {
         setLoading(false);
       }
@@ -76,23 +79,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     fetchUserData();
   }, [router]);
 
-  const hasPermission = (requiredPerm: string | string[]) => {
-    if (typeof requiredPerm === 'string') {
-      return permissions.includes(requiredPerm);
-    }
-    return requiredPerm.some(perm => permissions.includes(perm));
-  };
+  useEffect(() => {
+    if (!authorized) return;
+    let active = true;
 
-  const hasRole = (requiredRole: string | string[]) => {
-    const requiredRoles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
-    return requiredRoles.some((role) => roles.map(normalizeRole).includes(normalizeRole(role)));
-  };
+    const refreshAccess = async () => {
+      try {
+        const [nextRoles, nextPermissions] = await Promise.all([
+          authorService.getMyRoles(),
+          authorService.getMyPermissions(),
+        ]);
+        if (!active) return;
+        if (!canAccessAdmin(nextRoles || [])) {
+          setAuthorized(false);
+          await authService.logout().catch(() => undefined);
+          clearAuthCookies();
+          router.replace('/');
+          return;
+        }
+        setRoles(nextRoles || []);
+        setPermissions(normalizePermissions(nextPermissions));
+      } catch {
+        // Keep the last known UI policy on a transient refresh failure.
+        // Protected backend endpoints remain the final authorization boundary.
+      }
+    };
 
-  const isAdmin = hasRole('ADMIN');
+    const refreshOnFocus = () => void refreshAccess();
+    const refreshInterval = window.setInterval(() => void refreshAccess(), 60_000);
+    window.addEventListener('focus', refreshOnFocus);
+    return () => {
+      active = false;
+      window.clearInterval(refreshInterval);
+      window.removeEventListener('focus', refreshOnFocus);
+    };
+  }, [authorized, router]);
+
+  const hasPermission = useCallback(
+    (requiredPerm: PermissionCode | readonly PermissionCode[], mode: PermissionMode = 'any') =>
+      hasRequiredPermission(permissions, requiredPerm, mode),
+    [permissions]
+  );
 
   return (
-    <AuthContext.Provider value={{ user, roles, permissions, hasPermission, isAdmin, hasRole, setPermissions, loading }}>
-      {!loading ? children : <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center' }}>Loading Workspace...</div>}
+    <AuthContext.Provider value={{ user, roles, permissions, hasPermission, loading }}>
+      {!loading && authorized
+        ? children
+        : <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center' }}>{loading ? 'Đang tải không gian làm việc...' : 'Đang chuyển đến trang đăng nhập...'}</div>}
     </AuthContext.Provider>
   );
 }

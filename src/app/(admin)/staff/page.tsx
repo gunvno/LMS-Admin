@@ -7,6 +7,8 @@ import HasPermission from "@/components/HasPermission";
 import ActionMenu from "@/components/ActionMenu";
 import { useConfirmation } from "@/components/ConfirmationModal";
 import Pagination from "@/components/Pagination";
+import { useAuth } from "@/contexts/AuthContext";
+import { PERMISSION } from "@/lib/permissions";
 import { authorService, StaffAccount } from "@/services/author.service";
 import { Plus, Search, ChevronDown, UserCog, Lock, Key } from "lucide-react";
 import "./staff-list.css";
@@ -23,6 +25,9 @@ function initials(name?: string) {
 export default function StaffPage() {
   const router = useRouter();
   const { confirm } = useConfirmation();
+  const { hasPermission } = useAuth();
+  const canUpdateStatus = hasPermission(PERMISSION.STAFF_STATUS_UPDATE);
+  const canResetPassword = hasPermission(PERMISSION.STAFF_PASSWORD_RESET);
   const [staff, setStaff] = useState<StaffAccount[]>([]);
   const [keyword, setKeyword] = useState("");
   const [loading, setLoading] = useState(true);
@@ -60,6 +65,8 @@ export default function StaffPage() {
   };
 
   const handleLock = async (account: StaffAccount) => {
+    if (!canUpdateStatus) return;
+
     const accepted = await confirm({
       title: "Khóa tài khoản?",
       description: `“${account.fullName || account.email}” sẽ không thể đăng nhập cho đến khi tài khoản được mở khóa.`,
@@ -78,6 +85,8 @@ export default function StaffPage() {
   };
 
   const handleResetPassword = async (account: StaffAccount) => {
+    if (!canResetPassword) return;
+
     const password = window.prompt(`Nhập mật khẩu mới cho ${account.fullName || account.email}`, "123456");
     if (!password) return;
     try {
@@ -96,11 +105,11 @@ export default function StaffPage() {
         <div className="header-titles">
           <h1 className="text-headline-lg">Quản lý Nhân sự & Quyền</h1>
           <p className="text-body-md text-on-surface-variant mt-2">
-            Danh sách staff đang dùng <strong>userId</strong> làm mã định danh.
+            Danh sách staff dùng <strong>userId</strong> làm mã định danh; permission được quản lý chung theo role Instructor.
           </p>
         </div>
         <div className="header-actions">
-          <HasPermission required="STAFF_CREATE">
+          <HasPermission required={PERMISSION.STAFF_CREATE}>
             <Link href="/staff/new" className="btn btn-primary action-btn">
               <Plus size={18} /> Thêm Nhân viên
             </Link>
@@ -175,9 +184,19 @@ export default function StaffPage() {
                   <td className="actions-cell">
                     <ActionMenu
                       items={[
-                        { label: 'Chi tiết quyền', href: `/staff/${account.userId}`, icon: <UserCog size={16} /> },
-                        { label: updatingId === account.userId ? 'Đang khóa...' : 'Khóa tài khoản', icon: <Lock size={16} />, disabled: updatingId === account.userId, onClick: () => handleLock(account) },
-                        { label: 'Reset mật khẩu', icon: <Key size={16} />, disabled: updatingId === account.userId, onClick: () => handleResetPassword(account) },
+                        { label: 'Xem quyền Instructor', href: `/staff/${account.userId}`, icon: <UserCog size={16} /> },
+                        ...(canUpdateStatus ? [{
+                          label: updatingId === account.userId ? 'Đang khóa...' : 'Khóa tài khoản',
+                          icon: <Lock size={16} />,
+                          disabled: updatingId === account.userId,
+                          onClick: () => handleLock(account),
+                        }] : []),
+                        ...(canResetPassword ? [{
+                          label: 'Reset mật khẩu',
+                          icon: <Key size={16} />,
+                          disabled: updatingId === account.userId,
+                          onClick: () => handleResetPassword(account),
+                        }] : []),
                       ]}
                     />
                   </td>

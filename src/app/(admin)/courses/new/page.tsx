@@ -6,11 +6,14 @@ import { useRouter } from "next/navigation";
 import { UploadCloud } from "lucide-react";
 import { CourseCategory, CourseLevel, CourseStatus, courseService } from "@/services/course.service";
 import { useAuth } from "@/contexts/AuthContext";
+import { PERMISSION } from "@/lib/permissions";
 import "./new-course.css";
 
 export default function NewCoursePage() {
   const router = useRouter();
-  const { isAdmin, user } = useAuth();
+  const { hasPermission, user } = useAuth();
+  const canReview = hasPermission(PERMISSION.COURSE_REVIEW);
+  const canManageImages = hasPermission(PERMISSION.IMAGE_MANAGE);
   const [categories, setCategories] = useState<CourseCategory[]>([]);
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
@@ -28,10 +31,10 @@ export default function NewCoursePage() {
     const loadCategories = async () => {
       try {
         setLoadingCategories(true);
-        const page = await courseService.getCategories({ page: 0, size: 100 });
-        setCategories(page.content || []);
-        if (page.content?.[0]) {
-          setCategoryId(page.content[0].id);
+        const catalog = await courseService.getCategoryCatalog();
+        setCategories(catalog || []);
+        if (catalog?.[0]) {
+          setCategoryId(catalog[0].id);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Không tải được danh mục.");
@@ -72,10 +75,10 @@ export default function NewCoursePage() {
         description,
         level,
         price: price || undefined,
-        status: isAdmin ? status : "DRAFT",
+        status: canReview ? status : "DRAFT",
       });
 
-      if (thumbnail) {
+      if (thumbnail && canManageImages) {
         await courseService.uploadCourseImage(createdCourse.id, thumbnail);
       }
 
@@ -94,7 +97,7 @@ export default function NewCoursePage() {
         <div className="header-titles">
           <h1 className="text-headline-lg">Thêm Khóa học mới</h1>
           <p className="text-body-md text-on-surface-variant mt-2">
-            {isAdmin ? "Tạo nội dung và thiết lập trạng thái khóa học." : "Tạo bản nháp khóa học. Sau khi hoàn chỉnh, gửi quản trị viên duyệt để xuất bản."}
+            {canReview ? "Tạo nội dung và thiết lập trạng thái khóa học." : "Tạo bản nháp khóa học. Sau khi hoàn chỉnh, gửi người có quyền duyệt để xuất bản."}
           </p>
         </div>
         <div className="header-actions">
@@ -202,7 +205,7 @@ export default function NewCoursePage() {
         </div>
 
         <div className="form-right-col">
-          <div className="card p-6 mb-6">
+          {canManageImages && <div className="card p-6 mb-6">
             <h3 className="text-headline-sm mb-4">Ảnh Thumbnail</h3>
             <label className="upload-area">
               {thumbnailPreview ? (
@@ -231,12 +234,12 @@ export default function NewCoursePage() {
               />
             </label>
             {thumbnail && <p className="text-body-sm text-outline mt-2">Đã chọn: {thumbnail.name}</p>}
-          </div>
+          </div>}
 
           <div className="card p-6">
             <h3 className="text-headline-sm mb-4">Trạng thái & Cài đặt</h3>
             <div className="status-options flex flex-col gap-4 mb-6">
-              {isAdmin && <label className={`status-card ${status === 'PUBLISHED' ? 'active' : ''}`}>
+              {canReview && <label className={`status-card ${status === 'PUBLISHED' ? 'active' : ''}`}>
                 <input type="radio" name="status" checked={status === 'PUBLISHED'} onChange={() => setStatus('PUBLISHED')} className="custom-radio" disabled={loading} />
                 <div className="status-info">
                   <span className="text-label-md">Công khai (Published)</span>
@@ -250,7 +253,7 @@ export default function NewCoursePage() {
                   <span className="text-body-sm text-outline">Ẩn khóa học, chỉ admin/giảng viên mới thấy.</span>
                 </div>
               </label>
-              {!isAdmin && <p className="text-body-sm text-outline">Bạn chỉ có thể lưu bản nháp tại đây. Nút gửi duyệt xuất hiện trong trang chi tiết khóa học.</p>}
+              {!canReview && <p className="text-body-sm text-outline">Bạn chỉ có thể lưu bản nháp tại đây. Nút gửi duyệt xuất hiện trong trang chi tiết khóa học.</p>}
             </div>
           </div>
         </div>

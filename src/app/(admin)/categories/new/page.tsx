@@ -115,7 +115,7 @@ export default function NewCategoryPage() {
 
         <div className="form-footer border-t pt-6 flex justify-end gap-4">
           <Link href="/categories" className="btn btn-ghost">Hủy</Link>
-          <HasPermission required="CATEGORY_MANAGE">
+          <HasPermission required={["CATEGORY_MANAGE", "COURSE_REVIEW"]} mode="all">
             <button type="submit" className="btn btn-primary" disabled={loading}>{loading ? 'Đang lưu...' : 'Lưu Danh Mục'}</button>
           </HasPermission>
         </div>

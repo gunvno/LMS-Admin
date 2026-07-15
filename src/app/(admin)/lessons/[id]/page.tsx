@@ -7,6 +7,9 @@ import Link from "next/link";
 import { ArrowLeft, Edit, FileText, PlayCircle, BookOpen, Layers3, Clock } from "lucide-react";
 import { Course, courseService } from "@/services/course.service";
 import { Lesson, lessonService } from "@/services/lesson.service";
+import HasPermission from "@/components/HasPermission";
+import { useAuth } from "@/contexts/AuthContext";
+import { PERMISSION } from "@/lib/permissions";
 
 function statusClass(status?: string) {
   if (status === "ACTIVE") return "status-badge status-success-light";
@@ -16,6 +19,8 @@ function statusClass(status?: string) {
 
 export default function LessonDetailPage() {
   const params = useParams<{ id: string }>();
+  const { hasPermission } = useAuth();
+  const canViewCourses = hasPermission(PERMISSION.COURSE_VIEW);
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
@@ -28,7 +33,7 @@ export default function LessonDetailPage() {
         setError("");
         const nextLesson = await lessonService.getLesson(params.id);
         setLesson(nextLesson);
-        if (nextLesson.courseId) {
+        if (nextLesson.courseId && canViewCourses) {
           const nextCourse = await courseService.getCourse(nextLesson.courseId);
           setCourse(nextCourse);
         }
@@ -40,13 +45,13 @@ export default function LessonDetailPage() {
     };
 
     loadLesson();
-  }, [params.id]);
+  }, [canViewCourses, params.id]);
 
   return (
     <div className="page-container detail-page">
       <div className="detail-toolbar">
         <Link href="/lessons" className="btn btn-ghost"><ArrowLeft size={18} /> Quay lại</Link>
-        {lesson && <Link href={`/lessons/${params.id}/edit`} className="btn btn-primary"><Edit size={18} /> Sửa bài học</Link>}
+        {lesson && <HasPermission required={[PERMISSION.LESSON_MANAGE, PERMISSION.COURSE_VIEW]} mode="all"><Link href={`/lessons/${params.id}/edit`} className="btn btn-primary"><Edit size={18} /> Sửa bài học</Link></HasPermission>}
       </div>
 
       {loading && <div className="card p-6">Đang tải bài học...</div>}

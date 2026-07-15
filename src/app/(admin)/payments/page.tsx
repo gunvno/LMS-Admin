@@ -5,6 +5,7 @@ import { CreditCard, FileText, RefreshCw, Search } from "lucide-react";
 import { paymentService, Payment, Invoice } from "@/services/payment.service";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatDateTime } from "@/lib/date";
+import { PERMISSION } from "@/lib/permissions";
 import "./payments.css";
 
 type Tab = "payments" | "invoices";
@@ -20,7 +21,8 @@ function statusClass(status: string) {
 }
 
 export default function PaymentsPage() {
-  const { isAdmin } = useAuth();
+  const { hasPermission } = useAuth();
+  const canViewRevenue = hasPermission(PERMISSION.PAYMENT_MANAGE);
   const [tab, setTab] = useState<Tab>("payments");
   const [payments, setPayments] = useState<Payment[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -29,7 +31,7 @@ export default function PaymentsPage() {
   const [error, setError] = useState("");
 
   const loadData = useCallback(async () => {
-    if (!isAdmin) return;
+    if (!canViewRevenue) return;
     try {
       setLoading(true);
       setError("");
@@ -44,13 +46,13 @@ export default function PaymentsPage() {
     } finally {
       setLoading(false);
     }
-  }, [isAdmin]);
+  }, [canViewRevenue]);
 
   useEffect(() => {
-    if (!isAdmin) return;
+    if (!canViewRevenue) return;
     const timer = window.setTimeout(() => void loadData(), 0);
     return () => window.clearTimeout(timer);
-  }, [isAdmin, loadData]);
+  }, [canViewRevenue, loadData]);
 
   const filteredPayments = useMemo(() => {
     const term = keyword.trim().toLowerCase();
@@ -61,10 +63,6 @@ export default function PaymentsPage() {
     const term = keyword.trim().toLowerCase();
     return invoices.filter((item) => !term || [item.userId, item.courseId, item.invoiceCode, item.providerTransactionId, item.status].some((value) => value?.toLowerCase().includes(term)));
   }, [invoices, keyword]);
-
-  if (!isAdmin) {
-    return <div className="page-container"><div className="card p-6">Bạn không có quyền xem giao dịch, hóa đơn hoặc doanh thu toàn hệ thống.</div></div>;
-  }
 
   return (
     <div className="page-container">

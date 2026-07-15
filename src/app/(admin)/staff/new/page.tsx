@@ -4,6 +4,8 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { useAuth } from "@/contexts/AuthContext";
+import { PERMISSION } from "@/lib/permissions";
 import { authorService } from "@/services/author.service";
 import "./new-staff.css";
 
@@ -15,6 +17,8 @@ function splitName(fullName: string) {
 
 export default function NewStaffPage() {
   const router = useRouter();
+  const { hasPermission } = useAuth();
+  const canCreateStaff = hasPermission(PERMISSION.STAFF_CREATE);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -25,6 +29,8 @@ export default function NewStaffPage() {
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
+    if (!canCreateStaff) return;
+
     setError("");
     const { firstName, lastName } = splitName(fullName);
     const finalUsername = username.trim() || email.split("@")[0];
@@ -103,7 +109,7 @@ export default function NewStaffPage() {
 
         <div className="form-footer mt-8">
           <Link href="/staff" className="btn btn-ghost">Hủy bỏ</Link>
-          <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? "Đang tạo..." : "Thêm Nhân sự"}</button>
+          <button type="submit" className="btn btn-primary" disabled={saving || !canCreateStaff}>{saving ? "Đang tạo..." : "Thêm Nhân sự"}</button>
         </div>
       </div>
     </form>

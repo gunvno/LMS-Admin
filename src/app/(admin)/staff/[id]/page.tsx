@@ -4,6 +4,12 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Save, Mail, ShieldCheck, Lock, Key, UserRound } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  isRequiredAdminPortalPermission,
+  PERMISSION,
+  preserveRequiredAdminPortalPermissions,
+} from "@/lib/permissions";
 import { authorService, Permission, StaffAccount } from "@/services/author.service";
 import "./staff.css";
 import "../../detail.css";
@@ -16,6 +22,10 @@ function initials(name?: string) {
 export default function StaffDetailsPage() {
   const params = useParams<{ id: string }>();
   const userId = params.id;
+  const { hasPermission } = useAuth();
+  const canViewPermissionCatalog = hasPermission(PERMISSION.PERMISSION_VIEW);
+  const canUpdatePermissions = hasPermission(PERMISSION.STAFF_UPDATE);
+  const canResetPassword = hasPermission(PERMISSION.STAFF_PASSWORD_RESET);
   const [staff, setStaff] = useState<StaffAccount | null>(null);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
@@ -30,10 +40,12 @@ export default function StaffDetailsPage() {
         setError("");
         const [staffData, permissionData] = await Promise.all([
           authorService.getStaffAccount(userId),
-          authorService.getPermissions().catch(() => []),
+          canViewPermissionCatalog
+            ? authorService.getPermissions().catch(() => [])
+            : Promise.resolve([]),
         ]);
         setStaff(staffData);
-        setSelectedPermissions(staffData.permissionCodes || []);
+        setSelectedPermissions(preserveRequiredAdminPortalPermissions(staffData.permissionCodes || []));
         setPermissions(permissionData || []);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Không tải được chi tiết nhân sự.");
@@ -43,7 +55,7 @@ export default function StaffDetailsPage() {
     };
 
     loadData();
-  }, [userId]);
+  }, [canViewPermissionCatalog, userId]);
 
   const permissionOptions = useMemo(() => {
     if (permissions.length > 0) return permissions;
@@ -51,6 +63,8 @@ export default function StaffDetailsPage() {
   }, [permissions, staff]);
 
   const togglePermission = (code: string) => {
+    if (!canUpdatePermissions || isRequiredAdminPortalPermission(code)) return;
+
     setSelectedPermissions((prev) =>
       prev.includes(code) ? prev.filter((item) => item !== code) : [...prev, code]
     );
@@ -58,12 +72,17 @@ export default function StaffDetailsPage() {
 
   const handleSave = async (event: FormEvent) => {
     event.preventDefault();
+    if (!canUpdatePermissions) return;
+
     setError("");
     try {
       setSaving(true);
-      const updated = await authorService.updateStaffPermissions(userId, selectedPermissions);
+      const updated = await authorService.updateStaffPermissions(
+        userId,
+        preserveRequiredAdminPortalPermissions(selectedPermissions)
+      );
       setStaff(updated);
-      setSelectedPermissions(updated.permissionCodes || []);
+      setSelectedPermissions(preserveRequiredAdminPortalPermissions(updated.permissionCodes || []));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Không lưu được quyền nhân sự.");
     } finally {
@@ -72,6 +91,8 @@ export default function StaffDetailsPage() {
   };
 
   const handleResetPassword = async () => {
+    if (!canResetPassword) return;
+
     const password = window.prompt("Nhập mật khẩu mới", "123456");
     if (!password) return;
     try {
@@ -90,8 +111,12 @@ export default function StaffDetailsPage() {
         <Link href="/staff" className="btn btn-ghost"><ArrowLeft size={18} /> Quay lại</Link>
         {staff && (
           <div className="header-actions">
-            <button type="button" className="btn btn-ghost" onClick={handleResetPassword} disabled={saving}><Key size={18} /> Reset mật khẩu</button>
-            <button type="submit" className="btn btn-primary" disabled={saving}><Save size={18} /> {saving ? "Đang lưu..." : "Lưu quyền"}</button>
+            {canResetPassword && (
+              <button type="button" className="btn btn-ghost" onClick={handleResetPassword} disabled={saving}><Key size={18} /> Reset mật khẩu</button>
+            )}
+            {canUpdatePermissions && (
+              <button type="submit" className="btn btn-primary" disabled={saving}><Save size={18} /> {saving ? "Đang lưu..." : "Lưu quyền Instructor"}</button>
+            )}
           </div>
         )}
       </div>
@@ -119,8 +144,12 @@ export default function StaffDetailsPage() {
           <div className="detail-shell">
             <section className="detail-panel">
               <div className="section-heading">
-                <h2>Quyền truy cập</h2>
-                <p>Danh sách quyền gán cho role instructor hiện tại. Các API staff backend đang dùng userId làm accountId.</p>
+                <h2>Quyền chung của role Instructor</h2>
+                <p>
+                  {canUpdatePermissions
+                    ? "Thay đổi tại đây áp dụng cho tất cả tài khoản Instructor. Quyền hệ thống để đọc phiên đăng nhập được giữ cố định."
+                    : "Bạn chỉ có quyền xem danh sách quyền chung của role Instructor."}
+                </p>
               </div>
 
               <div className="permissions-grid">
@@ -131,7 +160,7 @@ export default function StaffDetailsPage() {
                       className="custom-checkbox"
                       checked={selectedPermissions.includes(permission.code)}
                       onChange={() => togglePermission(permission.code)}
-                      disabled={saving}
+                      disabled={saving || !canUpdatePermissions || isRequiredAdminPortalPermission(permission.code)}
                     />
                     <div className="permission-info">
                       <span className="text-label-md">{permission.name || permission.code}</span>

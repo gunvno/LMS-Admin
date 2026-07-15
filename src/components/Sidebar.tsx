@@ -22,29 +22,47 @@ import {
 } from "lucide-react";
 import "./Sidebar.css";
 import { useAuth } from "@/contexts/AuthContext";
+import { PERMISSION, satisfiesRequirement, type PermissionRequirement } from "@/lib/permissions";
 
-const navItems = [
+type NavItem = PermissionRequirement & {
+  name: string;
+  href: string;
+  icon: typeof LayoutDashboard;
+};
+
+const navItems: readonly NavItem[] = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Categories", href: "/categories", icon: FolderOpen, adminOnly: true },
-  { name: "Courses", href: "/courses", icon: GraduationCap },
-  { name: "Lessons", href: "/lessons", icon: BookOpen },
-  { name: "Quiz", href: "/quiz", icon: HelpCircle },
-  { name: "Enrollment", href: "/enrollment", icon: Users },
+  { name: "Categories", href: "/categories", icon: FolderOpen, allOf: [PERMISSION.CATEGORY_VIEW] },
+  { name: "Courses", href: "/courses", icon: GraduationCap, allOf: [PERMISSION.COURSE_VIEW] },
+  { name: "Lessons", href: "/lessons", icon: BookOpen, allOf: [PERMISSION.LESSON_VIEW] },
+  { name: "Quiz", href: "/quiz", icon: HelpCircle, allOf: [PERMISSION.QUIZ_VIEW] },
+  { name: "Enrollment", href: "/enrollment", icon: Users, allOf: [PERMISSION.ENROLLMENT_VIEW] },
   { name: "Messages", href: "/messages", icon: MessagesSquare },
-  { name: "Payments", href: "/payments", icon: CreditCard, adminOnly: true },
-  { name: "Certificates", href: "/certificates", icon: Badge },
-  { name: "Notices", href: "/notices", icon: Bell, adminOnly: true },
-  { name: "Staff", href: "/staff", icon: ShieldCheck, adminOnly: true },
+  { name: "Payments", href: "/payments", icon: CreditCard, allOf: [PERMISSION.PAYMENT_MANAGE] },
+  {
+    name: "Certificates",
+    href: "/certificates",
+    icon: Badge,
+    anyOf: [PERMISSION.CERTIFICATE_MANAGE, PERMISSION.CERTIFICATE_VERIFY],
+  },
+  {
+    name: "Notices",
+    href: "/notices",
+    icon: Bell,
+    anyOf: [PERMISSION.NOTICE_VIEW, PERMISSION.NOTICE_BROADCAST],
+  },
+  { name: "Staff", href: "/staff", icon: ShieldCheck, allOf: [PERMISSION.STAFF_VIEW] },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { isAdmin, user, roles } = useAuth();
-  const visibleNavItems = navItems.filter((item) => !item.adminOnly || isAdmin);
+  const { user, roles, permissions } = useAuth();
+  const visibleNavItems = navItems.filter((item) => satisfiesRequirement(permissions, item));
   const displayName = user?.fullName || user?.username || "Tài khoản";
-  const displayRole = isAdmin ? "Admin" : (roles[0] || "Instructor").replace(/^ROLE_/, "");
+  const normalizedRoles = roles.map((role) => role.replace(/^ROLE_/, "").toUpperCase());
+  const displayRole = normalizedRoles.includes("ADMIN") ? "Admin" : normalizedRoles[0] || "Instructor";
 
   useEffect(() => {
     if (!mobileOpen) return;

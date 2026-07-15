@@ -7,6 +7,7 @@ type LessonMediaFieldsProps = {
   videoFile: File | null;
   documentFiles: File[];
   existingResources?: LessonResource[];
+  canManage?: boolean;
   disabled?: boolean;
   onVideoChange: (file: File | null) => void;
   onDocumentsChange: (files: File[]) => void;
@@ -17,6 +18,7 @@ export default function LessonMediaFields({
   videoFile,
   documentFiles,
   existingResources = [],
+  canManage = true,
   disabled = false,
   onVideoChange,
   onDocumentsChange,
@@ -29,7 +31,7 @@ export default function LessonMediaFields({
     <>
       <div className="card p-6 mb-6">
         <h3 className="text-headline-sm mb-4">Video bài giảng</h3>
-        <label className={`upload-area mb-3${disabled ? " upload-area-disabled" : ""}`}>
+        {canManage && <label className={`upload-area mb-3${disabled ? " upload-area-disabled" : ""}`}>
           <div className="upload-icon-wrapper bg-primary-fixed mb-3">
             <UploadCloud size={24} className="text-primary" />
           </div>
@@ -42,7 +44,7 @@ export default function LessonMediaFields({
             disabled={disabled}
             onChange={(event) => onVideoChange(event.target.files?.[0] || null)}
           />
-        </label>
+        </label>}
         {videoFile && (
           <div className="media-attachment">
             <Video size={20} className="text-primary" />
@@ -60,7 +62,7 @@ export default function LessonMediaFields({
 
       <div className="card p-6 mb-6">
         <h3 className="text-headline-sm mb-4">Tài liệu đính kèm</h3>
-        <label className={`btn btn-secondary w-full justify-center${disabled ? " disabled" : ""}`}>
+        {canManage && <label className={`btn btn-secondary w-full justify-center${disabled ? " disabled" : ""}`}>
           <FileText size={17} /> Chọn tài liệu
           <input
             type="file"
@@ -74,7 +76,7 @@ export default function LessonMediaFields({
               event.target.value = "";
             }}
           />
-        </label>
+        </label>}
 
         {(documentFiles.length > 0 || documents.length > 0) && <div className="resource-list mt-4">
           {documentFiles.map((file, index) => (
@@ -88,7 +90,7 @@ export default function LessonMediaFields({
             <div className="resource-item" key={resource.id}>
               <FileText size={19} className="text-primary" />
               <div className="resource-name"><strong>{resource.title}</strong><span>Đã upload</span></div>
-              {onDeleteExisting && <button type="button" className="icon-btn text-status-required" disabled={disabled} onClick={() => onDeleteExisting(resource)} aria-label={`Xóa ${resource.title}`}><Trash2 size={17} /></button>}
+              {canManage && onDeleteExisting && <button type="button" className="icon-btn text-status-required" disabled={disabled} onClick={() => onDeleteExisting(resource)} aria-label={`Xóa ${resource.title}`}><Trash2 size={17} /></button>}
             </div>
           ))}
         </div>}

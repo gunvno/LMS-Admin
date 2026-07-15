@@ -8,6 +8,8 @@ import { useConfirmation } from "@/components/ConfirmationModal";
 import { Plus, Search, ChevronDown, Archive, Settings, FileText, Trophy, MoreVertical, Check, Trash2 } from "lucide-react";
 import { Course, courseService } from "@/services/course.service";
 import { Quiz, quizService } from "@/services/quiz.service";
+import { useAuth } from "@/contexts/AuthContext";
+import { PERMISSION } from "@/lib/permissions";
 import "./quiz.css";
 
 function statusClass(status?: string) {
@@ -18,6 +20,9 @@ function statusClass(status?: string) {
 
 export default function QuizManagementPage() {
   const { confirm } = useConfirmation();
+  const { hasPermission } = useAuth();
+  const canViewCourses = hasPermission(PERMISSION.COURSE_VIEW);
+  const canManageQuizzes = hasPermission(PERMISSION.QUIZ_MANAGE);
   const [courseFilter, setCourseFilter] = useState("ALL");
   const [keyword, setKeyword] = useState("");
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
@@ -34,11 +39,11 @@ export default function QuizManagementPage() {
         setError("");
         const [quizPage, coursePage] = await Promise.all([
           quizService.getQuizzes({ page: 0, size: 100 }),
-          courseService.getCourses({ page: 0, size: 100 }),
+          canViewCourses ? courseService.getCourses({ page: 0, size: 100 }) : null,
         ]);
         const nextQuizzes = quizPage.content || [];
         setQuizzes(nextQuizzes);
-        setCourses(coursePage.content || []);
+        setCourses(coursePage?.content || []);
         setSelectedId((prev) => prev || nextQuizzes[0]?.id || "");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Không tải được danh sách quiz.");
@@ -48,7 +53,7 @@ export default function QuizManagementPage() {
     };
 
     loadData();
-  }, []);
+  }, [canViewCourses]);
 
   const courseNameById = useMemo(() => {
     return courses.reduce<Record<string, string>>((acc, course) => {
@@ -72,6 +77,8 @@ export default function QuizManagementPage() {
   const selectedQuiz = filteredQuizzes.find((quiz) => quiz.id === selectedId) || filteredQuizzes[0];
 
   const handleDelete = async (quiz: Quiz) => {
+    if (!canManageQuizzes) return;
+
     const accepted = await confirm({
       title: "Xóa quiz?",
       description: `Quiz “${quiz.title}” cùng các câu hỏi liên quan sẽ bị xóa và không thể khôi phục.`,
@@ -99,7 +106,7 @@ export default function QuizManagementPage() {
           <p className="text-body-md text-on-surface-variant mt-2">Quản lý quiz, điều kiện hoàn thành và câu hỏi theo khóa học.</p>
         </div>
         <div className="header-actions">
-          <HasPermission required="QUIZ_MANAGE">
+          <HasPermission required={[PERMISSION.QUIZ_MANAGE, PERMISSION.COURSE_VIEW, PERMISSION.LESSON_VIEW]} mode="all">
             <Link href="/quiz/new" className="btn btn-primary action-btn">
               <Plus size={18} /> Tạo Quiz
             </Link>
@@ -113,10 +120,10 @@ export default function QuizManagementPage() {
           <input type="text" placeholder="Tìm quiz theo tên hoặc khóa học..." className="form-input search-input" value={keyword} onChange={(event) => setKeyword(event.target.value)} />
         </div>
         <div className="flex-center gap-4">
-          <div className="dropdown-wrapper card p-0">
+          {canViewCourses && <div className="dropdown-wrapper card p-0">
             <CourseSelect value={courseFilter} onChange={setCourseFilter} includeAllOption allLabel="Tất cả khóa học" className="form-input dropdown-select text-body-sm" />
             <ChevronDown size={16} className="dropdown-icon" />
-          </div>
+          </div>}
         </div>
       </div>
 
@@ -156,20 +163,18 @@ export default function QuizManagementPage() {
                   <p className="text-body-sm text-on-surface-variant mt-2">Quản lý cài đặt quiz và câu hỏi. API câu hỏi sẽ nối ở bước tiếp theo.</p>
                 </div>
                 <div className="details-actions">
-                  <button className="btn btn-secondary action-btn text-success border-success">
+                  <span className="btn btn-secondary action-btn text-success border-success">
                     <Check size={16} /> {selectedQuiz.requiredToComplete ? "Bắt buộc" : "Luyện tập"}
-                  </button>
-                  <button className="btn btn-secondary action-btn text-outline">
+                  </span>
+                  <span className="btn btn-secondary action-btn text-outline">
                     <Archive size={16} /> {selectedQuiz.status || "ACTIVE"}
-                  </button>
-                  <button className="btn btn-secondary action-btn text-outline">
+                  </span>
+                  <span className="btn btn-secondary action-btn text-outline">
                     <Settings size={16} /> Pass {selectedQuiz.passScore}%
-                  </button>
-                  <HasPermission required="QUESTION_MANAGE">
-                    <Link className="btn btn-primary action-btn" href={`/quiz/${selectedQuiz.id}/questions`}>
-                      <Plus size={16} /> Quản lý câu hỏi
-                    </Link>
-                  </HasPermission>
+                  </span>
+                  <Link className="btn btn-primary action-btn" href={`/quiz/${selectedQuiz.id}/questions`}>
+                    <Plus size={16} /> Xem câu hỏi
+                  </Link>
                   <HasPermission required="QUIZ_MANAGE">
                     <button className="btn btn-secondary action-btn text-status-required" disabled={deletingId === selectedQuiz.id} onClick={() => handleDelete(selectedQuiz)}>
                       <Trash2 size={16} /> {deletingId === selectedQuiz.id ? "Đang xóa..." : "Xóa"}

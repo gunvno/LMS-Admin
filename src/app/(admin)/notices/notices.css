@@ -9,6 +9,10 @@
   align-items: start;
 }
 
+.notices-grid.single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .notice-composer,
 .notice-inbox-panel {
   padding: 22px;

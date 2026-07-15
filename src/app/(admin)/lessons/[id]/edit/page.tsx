@@ -14,11 +14,16 @@ import {
   lessonService,
 } from "@/services/lesson.service";
 import "./edit-lesson.css";
+import { useAuth } from "@/contexts/AuthContext";
+import { PERMISSION } from "@/lib/permissions";
 
 export default function EditLessonPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const { confirm } = useConfirmation();
+  const { hasPermission } = useAuth();
+  const canViewResources = hasPermission(PERMISSION.RESOURCE_VIEW);
+  const canManageResources = hasPermission(PERMISSION.RESOURCE_MANAGE);
   const [courseId, setCourseId] = useState("");
   const [title, setTitle] = useState("");
   const [code, setCode] = useState("");
@@ -43,7 +48,7 @@ export default function EditLessonPage() {
         setError("");
         const [lesson, resourcePage] = await Promise.all([
           lessonService.getLesson(params.id),
-          lessonService.getLessonResources(params.id),
+          canViewResources ? lessonService.getLessonResources(params.id) : null,
         ]);
         if (!active) return;
         setCourseId(lesson.courseId);
@@ -54,7 +59,7 @@ export default function EditLessonPage() {
         setOrderIndex(lesson.orderIndex ?? 1);
         setStatus(lesson.status);
         setContent(lesson.content || "");
-        setResources(resourcePage.content);
+        setResources(resourcePage?.content || []);
       } catch (loadError) {
         if (active) {
           setError(loadError instanceof Error ? loadError.message : "Không tải được bài học.");
@@ -66,7 +71,7 @@ export default function EditLessonPage() {
 
     void loadLesson();
     return () => { active = false; };
-  }, [params.id]);
+  }, [canViewResources, params.id]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -95,7 +100,7 @@ export default function EditLessonPage() {
       setError("");
       await lessonService.updateLesson(params.id, payload);
 
-      if (videoFile) {
+      if (videoFile && canManageResources) {
         const videoResource = await lessonService.uploadLessonResource(params.id, videoFile, videoFile.name);
         const uploadedVideoUrl = `/course/api/v1/lesson-resources/${videoResource.id}/view`;
         await lessonService.updateLesson(params.id, { ...payload, videoUrl: uploadedVideoUrl });
@@ -105,7 +110,7 @@ export default function EditLessonPage() {
         setVideoFile(null);
       }
 
-      for (const documentFile of documentFiles) {
+      for (const documentFile of canManageResources ? documentFiles : []) {
         await lessonService.uploadLessonResource(params.id, documentFile, documentFile.name);
         setDocumentFiles((current) => current.filter((file) => file !== documentFile));
       }
@@ -119,6 +124,8 @@ export default function EditLessonPage() {
   };
 
   const handleDeleteResource = async (resource: LessonResource) => {
+    if (!canManageResources) return;
+
     const accepted = await confirm({
       title: "Xóa tài liệu đính kèm?",
       description: `Tài liệu “${resource.title}” sẽ bị xóa khỏi bài học và không thể khôi phục.`,
@@ -210,15 +217,16 @@ export default function EditLessonPage() {
         </div>
 
         <div className="form-right-col">
-          <LessonMediaFields
+          {(canViewResources || canManageResources) && <LessonMediaFields
             videoFile={videoFile}
             documentFiles={documentFiles}
             existingResources={resources}
+            canManage={canManageResources}
             disabled={loading || saving}
             onVideoChange={setVideoFile}
             onDocumentsChange={setDocumentFiles}
             onDeleteExisting={(resource) => void handleDeleteResource(resource)}
-          />
+          />}
 
           <div className="card p-6">
             <h3 className="text-headline-sm mb-4">Trạng thái</h3>

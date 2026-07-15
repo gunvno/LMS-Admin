@@ -2,13 +2,15 @@
 "use client";
 
 import { MouseEvent, useEffect, useMemo, useState } from "react";
-import { Plus, Search, CheckCircle2, LayoutGrid, Monitor, Palette, Megaphone, Wallet, Edit, Trash2 } from "lucide-react";
+import { Plus, Search, CheckCircle2, LayoutGrid, Monitor, Palette, Megaphone, Wallet, Edit, Eye, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import HasPermission from "@/components/HasPermission";
 import ActionMenu from "@/components/ActionMenu";
 import { useConfirmation } from "@/components/ConfirmationModal";
 import Pagination from "@/components/Pagination";
+import { useAuth } from "@/contexts/AuthContext";
+import { PERMISSION } from "@/lib/permissions";
 import { CourseCategory, courseService } from "@/services/course.service";
 import "./categories.css";
 
@@ -26,6 +28,11 @@ function statusClass(status: string) {
 export default function CategoriesPage() {
   const router = useRouter();
   const { confirm } = useConfirmation();
+  const { hasPermission } = useAuth();
+  const canManageCategories = hasPermission(
+    [PERMISSION.CATEGORY_MANAGE, PERMISSION.COURSE_REVIEW],
+    "all"
+  );
   const [categories, setCategories] = useState<CourseCategory[]>([]);
   const [totalElements, setTotalElements] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -57,6 +64,8 @@ export default function CategoriesPage() {
   };
 
   const handleDelete = async (category: CourseCategory) => {
+    if (!canManageCategories) return;
+
     const accepted = await confirm({
       title: "Xóa danh mục?",
       description: `Danh mục “${category.name}” sẽ bị xóa và không thể khôi phục.`,
@@ -96,7 +105,7 @@ export default function CategoriesPage() {
           </p>
         </div>
         <div className="header-actions">
-          <HasPermission required="CATEGORY_MANAGE">
+          <HasPermission required={["CATEGORY_MANAGE", "COURSE_REVIEW"]} mode="all">
             <Link href="/categories/new" className="btn btn-primary action-btn">
               <Plus size={18} /> Thêm danh mục
             </Link>
@@ -190,15 +199,15 @@ export default function CategoriesPage() {
                     <td className="text-body-sm text-on-surface-variant">{category.description || '-'}</td>
                     <td><span className={`status-badge ${statusClass(category.status)}`}>{category.status}</span></td>
                     <td className="actions-cell">
-                      <HasPermission required="CATEGORY_MANAGE">
-                        <ActionMenu
-                          items={[
-                            { label: 'Xem chi tiết', href: `/categories/${category.id}`, icon: <Edit size={16} /> },
+                      <ActionMenu
+                        items={[
+                          { label: 'Xem chi tiết', href: `/categories/${category.id}`, icon: <Eye size={16} /> },
+                          ...(canManageCategories ? [
                             { label: 'Sửa', href: `/categories/${category.id}/edit`, icon: <Edit size={16} /> },
                             { label: deletingId === category.id ? 'Đang xóa...' : 'Xóa', icon: <Trash2 size={16} />, danger: true, disabled: deletingId === category.id, onClick: () => handleDelete(category) },
-                          ]}
-                        />
-                      </HasPermission>
+                          ] : []),
+                        ]}
+                      />
                     </td>
                   </tr>
                 );

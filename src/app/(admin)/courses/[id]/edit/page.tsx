@@ -8,12 +8,15 @@ import { ArrowLeft, UploadCloud } from "lucide-react";
 import Link from "next/link";
 import { CourseCategory, CourseLevel, CourseStatus, courseService } from "@/services/course.service";
 import { useAuth } from "@/contexts/AuthContext";
+import { PERMISSION } from "@/lib/permissions";
 import "../../new/new-course.css";
 
 export default function EditCoursePage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const { isAdmin } = useAuth();
+  const { hasPermission } = useAuth();
+  const canReview = hasPermission(PERMISSION.COURSE_REVIEW);
+  const canManageImages = hasPermission(PERMISSION.IMAGE_MANAGE);
   const [categories, setCategories] = useState<CourseCategory[]>([]);
   const [categoryId, setCategoryId] = useState("");
   const [instructorId, setInstructorId] = useState("");
@@ -34,9 +37,9 @@ export default function EditCoursePage() {
         setLoading(true);
         const [course, categoryPage] = await Promise.all([
           courseService.getCourse(params.id),
-          courseService.getCategories({ page: 0, size: 100 }),
+          courseService.getCategoryCatalog(),
         ]);
-        setCategories(categoryPage.content || []);
+        setCategories(categoryPage || []);
         setCategoryId(course.categoryId || "");
         setInstructorId(course.instructorId || "");
         setName(course.name || "");
@@ -76,7 +79,7 @@ export default function EditCoursePage() {
         price: price || undefined,
         status,
       });
-      if (thumbnail) {
+      if (thumbnail && canManageImages) {
         await courseService.uploadCourseImage(params.id, thumbnail);
       }
       router.push('/courses');
@@ -125,6 +128,9 @@ export default function EditCoursePage() {
                 <div className="form-group">
                   <label className="text-label-md">Danh mục *</label>
                   <select className="form-input" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} required disabled={saving}>
+                    {!categories.some((category) => category.id === categoryId) && categoryId && (
+                      <option value={categoryId}>{categoryId}</option>
+                    )}
                     {categories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}
                   </select>
                 </div>
@@ -152,23 +158,23 @@ export default function EditCoursePage() {
           </div>
 
           <div className="form-right-col">
-            <div className="card p-6 mb-6">
+            {canManageImages && <div className="card p-6 mb-6">
               <h3 className="text-headline-sm mb-4">Ảnh Thumbnail mới</h3>
               <label className="upload-area">
                 {thumbnailPreview ? <img src={thumbnailPreview} alt="Course thumbnail preview" className="thumbnail-preview" /> : <><div className="upload-icon-wrapper bg-primary-fixed"><UploadCloud size={32} className="text-primary" /></div><p className="text-body-md mt-4 text-center"><strong className="text-primary cursor-pointer">Chọn ảnh mới</strong></p></>}
                 <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => setThumbnail(e.target.files?.[0] || null)} disabled={saving} />
               </label>
               {thumbnail && <p className="text-body-sm text-outline mt-2">Đã chọn: {thumbnail.name}</p>}
-            </div>
+            </div>}
             <div className="card p-6">
               <h3 className="text-headline-sm mb-4">Trạng thái</h3>
-              {isAdmin ? <select className="form-input" value={status} onChange={(e) => setStatus(e.target.value as CourseStatus)} disabled={saving}>
+              {canReview ? <select className="form-input" value={status} onChange={(e) => setStatus(e.target.value as CourseStatus)} disabled={saving}>
                 <option value="DRAFT">Draft</option>
                 <option value="PENDING_REVIEW">Pending Review</option>
                 <option value="PUBLISHED">Published</option>
                 <option value="REJECTED">Rejected</option>
                 <option value="ARCHIVED">Archived</option>
-              </select> : <><strong>{status}</strong><p className="text-body-sm text-outline mt-2">Chỉ quản trị viên có thể thay đổi trạng thái xuất bản.</p></>}
+              </select> : <><strong>{status}</strong><p className="text-body-sm text-outline mt-2">Bạn chưa có quyền thay đổi trạng thái xuất bản.</p></>}
             </div>
           </div>
         </div>

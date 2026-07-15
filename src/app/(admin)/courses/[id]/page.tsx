@@ -8,6 +8,7 @@ import { ArrowLeft, Edit, BookOpen, DollarSign, Tag, UserRound, Layers3 } from "
 import { Course, CourseCategory, courseService } from "@/services/course.service";
 import HasPermission from "@/components/HasPermission";
 import { useAuth } from "@/contexts/AuthContext";
+import { PERMISSION } from "@/lib/permissions";
 
 function infoValue(value?: string | number | null) {
   if (value === undefined || value === null || value === "") return "-";
@@ -21,12 +22,15 @@ function formatPrice(value?: number) {
 
 export default function CourseDetailPage() {
   const params = useParams<{ id: string }>();
+  const { hasPermission } = useAuth();
+  const canViewCategories = hasPermission(PERMISSION.CATEGORY_VIEW);
+  const canManageCourses = hasPermission(PERMISSION.COURSE_MANAGE);
+  const canReviewCourses = hasPermission(PERMISSION.COURSE_REVIEW);
   const [course, setCourse] = useState<Course | null>(null);
   const [categories, setCategories] = useState<CourseCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
-  const { isAdmin } = useAuth();
 
   useEffect(() => {
     const loadData = async () => {
@@ -35,10 +39,10 @@ export default function CourseDetailPage() {
         setError("");
         const [courseData, categoryPage] = await Promise.all([
           courseService.getCourse(params.id),
-          courseService.getCategories({ page: 0, size: 100 }),
+          canViewCategories ? courseService.getCategories({ page: 0, size: 100 }) : null,
         ]);
         setCourse(courseData);
-        setCategories(categoryPage.content || []);
+        setCategories(categoryPage?.content || []);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Không tải được chi tiết khóa học.");
       } finally {
@@ -47,7 +51,7 @@ export default function CourseDetailPage() {
     };
 
     loadData();
-  }, [params.id]);
+  }, [canViewCategories, params.id]);
 
   const categoryName = useMemo(() => {
     if (!course) return "-";
@@ -55,7 +59,7 @@ export default function CourseDetailPage() {
   }, [categories, course]);
 
   const updateCourseStatus = async (action: "submit" | "approve") => {
-    if (!course) return;
+    if (!course || (action === "submit" ? !canManageCourses : !canReviewCourses)) return;
     try {
       setActionLoading(true);
       setError("");
@@ -76,8 +80,8 @@ export default function CourseDetailPage() {
         <Link href="/courses" className="btn btn-ghost"><ArrowLeft size={18} /> Quay lại</Link>
         {course && (
           <div className="header-actions">
-            {!isAdmin && (course.status === "DRAFT" || course.status === "REJECTED") && <HasPermission required="COURSE_MANAGE"><button className="btn btn-primary" onClick={() => updateCourseStatus("submit")} disabled={actionLoading}>{actionLoading ? "Đang gửi..." : "Gửi duyệt"}</button></HasPermission>}
-            {isAdmin && course.status === "PENDING_REVIEW" && <HasPermission required="COURSE_REVIEW"><button className="btn btn-primary" onClick={() => updateCourseStatus("approve")} disabled={actionLoading}>{actionLoading ? "Đang duyệt..." : "Duyệt & xuất bản"}</button></HasPermission>}
+            {(course.status === "DRAFT" || course.status === "REJECTED") && <HasPermission required="COURSE_MANAGE"><button className="btn btn-primary" onClick={() => updateCourseStatus("submit")} disabled={actionLoading}>{actionLoading ? "Đang gửi..." : "Gửi duyệt"}</button></HasPermission>}
+            {course.status === "PENDING_REVIEW" && <HasPermission required="COURSE_REVIEW"><button className="btn btn-primary" onClick={() => updateCourseStatus("approve")} disabled={actionLoading}>{actionLoading ? "Đang duyệt..." : "Duyệt & xuất bản"}</button></HasPermission>}
             <HasPermission required="COURSE_MANAGE"><Link href={`/courses/${course.id}/edit`} className="btn btn-primary"><Edit size={18} /> Sửa khóa học</Link></HasPermission>
           </div>
         )}

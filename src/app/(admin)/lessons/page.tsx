@@ -11,6 +11,8 @@ import { useConfirmation } from "@/components/ConfirmationModal";
 import Pagination from "@/components/Pagination";
 import { Course, courseService } from "@/services/course.service";
 import { Lesson, LessonStatus, lessonService } from "@/services/lesson.service";
+import { useAuth } from "@/contexts/AuthContext";
+import { PERMISSION } from "@/lib/permissions";
 import "./lessons.css";
 
 function shouldIgnoreRowClick(target: EventTarget | null) {
@@ -40,6 +42,9 @@ function statusLabel(status: LessonStatus) {
 export default function LessonsPage() {
   const { confirm } = useConfirmation();
   const router = useRouter();
+  const { hasPermission } = useAuth();
+  const canViewCourses = hasPermission(PERMISSION.COURSE_VIEW);
+  const canManageLessons = hasPermission(PERMISSION.LESSON_MANAGE);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [totalElements, setTotalElements] = useState(0);
@@ -56,11 +61,11 @@ export default function LessonsPage() {
         setError("");
         const [lessonPage, coursePage] = await Promise.all([
           lessonService.getLessons({ page: 0, size: 100, sort: "orderIndex,asc" }),
-          courseService.getCourses({ page: 0, size: 100 }),
+          canViewCourses ? courseService.getCourses({ page: 0, size: 100 }) : null,
         ]);
         setLessons(lessonPage.content || []);
         setTotalElements(lessonPage.totalElements || 0);
-        setCourses(coursePage.content || []);
+        setCourses(coursePage?.content || []);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Không tải được danh sách bài học.");
       } finally {
@@ -69,7 +74,7 @@ export default function LessonsPage() {
     };
 
     loadData();
-  }, []);
+  }, [canViewCourses]);
 
   const courseNameById = useMemo(() => {
     return courses.reduce<Record<string, string>>((acc, course) => {
@@ -98,6 +103,8 @@ export default function LessonsPage() {
   };
 
   const handleDelete = async (lesson: Lesson) => {
+    if (!canManageLessons) return;
+
     const accepted = await confirm({
       title: "Xóa bài học?",
       description: `Bài học “${lesson.title}” cùng nội dung liên quan sẽ bị xóa và không thể khôi phục.`,
@@ -125,7 +132,7 @@ export default function LessonsPage() {
           <p className="text-body-md text-on-surface-variant mt-2">Quản lý nội dung bài học, video và tài nguyên đính kèm.</p>
         </div>
         <div className="header-actions">
-          <HasPermission required="LESSON_MANAGE">
+          <HasPermission required={[PERMISSION.LESSON_MANAGE, PERMISSION.COURSE_VIEW]} mode="all">
             <Link href="/lessons/new" className="btn btn-primary action-btn">
               <Plus size={18} /> Tạo bài học mới
             </Link>
@@ -144,10 +151,10 @@ export default function LessonsPage() {
             onChange={(event) => setKeyword(event.target.value)}
           />
         </div>
-        <div className="dropdown-wrapper">
+        {canViewCourses && <div className="dropdown-wrapper">
           <CourseSelect value={courseFilter} onChange={setCourseFilter} includeAllOption className="form-input dropdown-select text-body-sm" />
           <ChevronDown size={16} className="dropdown-icon" />
-        </div>
+        </div>}
       </div>
 
       <div className="card table-card mt-4">
@@ -188,15 +195,17 @@ export default function LessonsPage() {
                   <td><span className="badge bg-surface-container-high text-on-surface">{lesson.durationMinutes ?? 0} phút</span></td>
                   <td><span className={`status-badge ${statusClass(lesson.status)}`}>{statusLabel(lesson.status)}</span></td>
                   <td className="actions-cell">
-                    <HasPermission required="LESSON_MANAGE">
-                      <ActionMenu
-                        items={[
-                          { label: "Xem chi tiết", href: `/lessons/${lesson.id}`, icon: <Eye size={16} /> },
+                    <ActionMenu
+                      items={[
+                        { label: "Xem chi tiết", href: `/lessons/${lesson.id}`, icon: <Eye size={16} /> },
+                        ...(canManageLessons && canViewCourses ? [
                           { label: "Sửa", href: `/lessons/${lesson.id}/edit`, icon: <Edit size={16} /> },
+                        ] : []),
+                        ...(canManageLessons ? [
                           { label: deletingId === lesson.id ? "Đang xóa..." : "Xóa", icon: <Trash2 size={16} />, danger: true, disabled: deletingId === lesson.id, onClick: () => handleDelete(lesson) },
-                        ]}
-                      />
-                    </HasPermission>
+                        ] : []),
+                      ]}
+                    />
                   </td>
                 </tr>
               ))}

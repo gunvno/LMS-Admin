@@ -5,12 +5,17 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2, UserRound, BookOpen, CalendarDays } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { PERMISSION } from "@/lib/permissions";
 import { Course, courseService } from "@/services/course.service";
 import { Enrollment, learningService } from "@/services/learning.service";
 import { formatDate } from "@/lib/date";
 
 export default function EnrollmentDetailPage() {
   const params = useParams<{ id: string }>();
+  const { hasPermission } = useAuth();
+  const canViewEnrollments = hasPermission(PERMISSION.ENROLLMENT_VIEW);
+  const canViewCourses = hasPermission(PERMISSION.COURSE_VIEW);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
@@ -18,15 +23,20 @@ export default function EnrollmentDetailPage() {
 
   useEffect(() => {
     const loadData = async () => {
+      if (!canViewEnrollments) {
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         setError("");
         const [enrollmentPage, coursePage] = await Promise.all([
           learningService.getMyCourses({ page: 0, size: 100 }),
-          courseService.getCourses({ page: 0, size: 100 }),
+          canViewCourses ? courseService.getCourses({ page: 0, size: 100 }) : null,
         ]);
         setEnrollments(enrollmentPage.content || []);
-        setCourses(coursePage.content || []);
+        setCourses(coursePage?.content || []);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Không tải được ghi danh.");
       } finally {
@@ -35,7 +45,7 @@ export default function EnrollmentDetailPage() {
     };
 
     loadData();
-  }, []);
+  }, [canViewCourses, canViewEnrollments]);
 
   const courseNameById = useMemo(() => {
     return courses.reduce<Record<string, string>>((acc, course) => {
@@ -91,7 +101,7 @@ export default function EnrollmentDetailPage() {
           </section>
         </>
       ) : !loading && !error ? (
-        <div className="card p-6">Không tìm thấy ghi danh trong danh sách của tài khoản hiện tại.</div>
+        <div className="card p-6">Không tìm thấy ghi danh trong phạm vi được cấp.</div>
       ) : null}
     </div>
   );

@@ -7,10 +7,14 @@ import Link from "next/link";
 import CourseSelect from "@/components/forms/CourseSelect";
 import LessonMediaFields from "@/components/forms/LessonMediaFields";
 import { CreateLessonPayload, LessonStatus, lessonService } from "@/services/lesson.service";
+import { useAuth } from "@/contexts/AuthContext";
+import { PERMISSION } from "@/lib/permissions";
 import "../[id]/edit/edit-lesson.css";
 
 export default function NewLessonPage() {
   const router = useRouter();
+  const { hasPermission } = useAuth();
+  const canManageResources = hasPermission(PERMISSION.RESOURCE_MANAGE);
   const [courseId, setCourseId] = useState("");
   const [title, setTitle] = useState("");
   const [code, setCode] = useState("");
@@ -55,7 +59,7 @@ export default function NewLessonPage() {
         : await lessonService.createLesson(payload);
       if (!createdLessonId) setCreatedLessonId(lesson.id);
 
-      if (videoFile) {
+      if (videoFile && canManageResources) {
         const videoResource = await lessonService.uploadLessonResource(lesson.id, videoFile, videoFile.name);
         const uploadedVideoUrl = `/course/api/v1/lesson-resources/${videoResource.id}/view`;
         lesson = await lessonService.updateLesson(lesson.id, { ...payload, videoUrl: uploadedVideoUrl });
@@ -63,7 +67,7 @@ export default function NewLessonPage() {
         setVideoFile(null);
       }
 
-      for (const documentFile of documentFiles) {
+      for (const documentFile of canManageResources ? documentFiles : []) {
         await lessonService.uploadLessonResource(lesson.id, documentFile, documentFile.name);
         setDocumentFiles((current) => current.filter((file) => file !== documentFile));
       }
@@ -145,13 +149,13 @@ export default function NewLessonPage() {
         </div>
 
         <div className="form-right-col">
-          <LessonMediaFields
+          {canManageResources && <LessonMediaFields
             videoFile={videoFile}
             documentFiles={documentFiles}
             disabled={submitting}
             onVideoChange={setVideoFile}
             onDocumentsChange={setDocumentFiles}
-          />
+          />}
 
           <div className="card p-6">
             <h3 className="text-headline-sm mb-4">Cài đặt</h3>

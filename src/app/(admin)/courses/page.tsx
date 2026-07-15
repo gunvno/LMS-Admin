@@ -18,7 +18,7 @@ function shouldIgnoreRowClick(target: EventTarget | null) {
   return target instanceof HTMLElement && Boolean(target.closest('a, button, summary, details, input, select, textarea, label'));
 }
 
-function CourseThumbnail({ courseId, name }: { courseId: string; name: string; index: number }) {
+function CourseThumbnail({ courseId, name, canView }: { courseId: string; name: string; canView: boolean; index: number }) {
   const [src, setSrc] = useState("");
 
   useEffect(() => {
@@ -26,7 +26,7 @@ function CourseThumbnail({ courseId, name }: { courseId: string; name: string; i
     let active = true;
     const controller = new AbortController();
     const loadImage = async () => {
-      if (!courseId) return;
+      if (!courseId || !canView) return;
 
       try {
         const images = await courseService.getCourseImages(courseId, controller.signal);
@@ -57,7 +57,7 @@ function CourseThumbnail({ courseId, name }: { courseId: string; name: string; i
       controller.abort();
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [courseId]);
+  }, [canView, courseId]);
 
   if (!src) {
     return <div className="course-thumbnail thumbnail-fallback">{name?.slice(0, 1).toUpperCase() || "C"}</div>;
@@ -96,7 +96,11 @@ function formatPrice(value?: number) {
 export default function CoursesPage() {
   const { confirm } = useConfirmation();
   const router = useRouter();
-  const { hasPermission, isAdmin } = useAuth();
+  const { hasPermission } = useAuth();
+  const canViewImages = hasPermission('IMAGE_VIEW');
+  const canViewCategories = hasPermission('CATEGORY_VIEW');
+  const canManageCourses = hasPermission('COURSE_MANAGE');
+  const canReviewCourses = hasPermission('COURSE_REVIEW');
   const [courses, setCourses] = useState<Course[]>([]);
   const [categories, setCategories] = useState<CourseCategory[]>([]);
   const [totalElements, setTotalElements] = useState(0);
@@ -114,11 +118,11 @@ export default function CoursesPage() {
         setError("");
         const [coursePage, categoryPage] = await Promise.all([
           courseService.getCourses({ page: 0, size: 50 }),
-          courseService.getCategories({ page: 0, size: 100 }),
+          canViewCategories ? courseService.getCategories({ page: 0, size: 100 }) : null,
         ]);
         setCourses(coursePage.content || []);
         setTotalElements(coursePage.totalElements || 0);
-        setCategories(categoryPage.content || []);
+        setCategories(categoryPage?.content || []);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Không tải được danh sách khóa học.");
       } finally {
@@ -127,7 +131,7 @@ export default function CoursesPage() {
     };
 
     loadData();
-  }, []);
+  }, [canViewCategories]);
 
   const categoryNameById = useMemo(() => {
     return categories.reduce<Record<string, string>>((acc, category) => {
@@ -156,6 +160,8 @@ export default function CoursesPage() {
   };
 
   const handleDelete = async (course: Course) => {
+    if (!canManageCourses) return;
+
     const accepted = await confirm({
       title: "Xóa khóa học?",
       description: `Khóa học “${course.name}” và dữ liệu liên quan sẽ bị xóa. Hành động này không thể hoàn tác.`,
@@ -176,6 +182,8 @@ export default function CoursesPage() {
   };
 
   const handleApprove = async (course: Course) => {
+    if (!canReviewCourses) return;
+
     const accepted = await confirm({
       title: "Duyệt và xuất bản?",
       description: `Khóa học “${course.name}” sẽ được xuất bản và hiển thị cho học viên.`,
@@ -278,7 +286,7 @@ export default function CoursesPage() {
                   <td className="text-body-md text-on-surface-variant">{getShortId(course.id)}</td>
                   <td>
                     <div className="cell-flex">
-                      <CourseThumbnail courseId={course.id} name={course.name} index={index} />
+                      <CourseThumbnail courseId={course.id} name={course.name} canView={canViewImages} index={index} />
                       <div className="cell-main">
                         <span className="cell-title">{course.name}</span>
                         <span className="cell-subtitle">{course.code}</span>
@@ -292,23 +300,21 @@ export default function CoursesPage() {
                     <span className={`status-badge ${statusClass(course.status)}`}>{formatStatus(course.status)}</span>
                   </td>
                   <td className="actions-cell">
-                    <HasPermission required={["COURSE_MANAGE", "COURSE_REVIEW"]}>
-                      <ActionMenu
-                        items={[
-                          { label: 'Xem chi tiết', href: `/courses/${course.id}`, icon: <Eye size={16} /> },
-                          ...(isAdmin && course.status === 'PENDING_REVIEW' && hasPermission('COURSE_REVIEW') ? [{
-                            label: approvingId === course.id ? 'Đang duyệt...' : 'Duyệt và xuất bản',
-                            icon: <BadgeCheck size={16} />,
-                            disabled: approvingId === course.id,
-                            onClick: () => void handleApprove(course),
-                          }] : []),
-                          ...(hasPermission('COURSE_MANAGE') ? [
-                            { label: 'Sửa', href: `/courses/${course.id}/edit`, icon: <Edit size={16} /> },
-                            { label: deletingId === course.id ? 'Đang xóa...' : 'Xóa', icon: <Trash2 size={16} />, danger: true, disabled: deletingId === course.id, onClick: () => void handleDelete(course) },
-                          ] : []),
-                        ]}
-                      />
-                    </HasPermission>
+                    <ActionMenu
+                      items={[
+                        { label: 'Xem chi tiết', href: `/courses/${course.id}`, icon: <Eye size={16} /> },
+                        ...(course.status === 'PENDING_REVIEW' && canReviewCourses ? [{
+                          label: approvingId === course.id ? 'Đang duyệt...' : 'Duyệt và xuất bản',
+                          icon: <BadgeCheck size={16} />,
+                          disabled: approvingId === course.id,
+                          onClick: () => void handleApprove(course),
+                        }] : []),
+                        ...(canManageCourses ? [
+                          { label: 'Sửa', href: `/courses/${course.id}/edit`, icon: <Edit size={16} /> },
+                          { label: deletingId === course.id ? 'Đang xóa...' : 'Xóa', icon: <Trash2 size={16} />, danger: true, disabled: deletingId === course.id, onClick: () => void handleDelete(course) },
+                        ] : []),
+                      ]}
+                    />
                   </td>
                 </tr>
               ))}

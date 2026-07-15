@@ -2,9 +2,10 @@
 
 import { MouseEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Download, CheckCircle2, Eye } from "lucide-react";
+import { Search, Eye } from "lucide-react";
 import ActionMenu from "@/components/ActionMenu";
-import { useConfirmation } from "@/components/ConfirmationModal";
+import { useAuth } from "@/contexts/AuthContext";
+import { PERMISSION } from "@/lib/permissions";
 import { Course, courseService } from "@/services/course.service";
 import { Enrollment, learningService } from "@/services/learning.service";
 import { formatDate } from "@/lib/date";
@@ -22,25 +23,31 @@ function statusClass(status: string) {
 
 export default function EnrollmentPage() {
   const router = useRouter();
-  const { confirm } = useConfirmation();
+  const { hasPermission } = useAuth();
+  const canViewEnrollments = hasPermission(PERMISSION.ENROLLMENT_VIEW);
+  const canViewCourses = hasPermission(PERMISSION.COURSE_VIEW);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [keyword, setKeyword] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [completingId, setCompletingId] = useState("");
 
   useEffect(() => {
     const loadData = async () => {
+      if (!canViewEnrollments) {
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         setError("");
         const [enrollmentPage, coursePage] = await Promise.all([
           learningService.getMyCourses({ page: 0, size: 100 }),
-          courseService.getCourses({ page: 0, size: 100 }),
+          canViewCourses ? courseService.getCourses({ page: 0, size: 100 }) : null,
         ]);
         setEnrollments(enrollmentPage.content || []);
-        setCourses(coursePage.content || []);
+        setCourses(coursePage?.content || []);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Không tải được danh sách ghi danh.");
       } finally {
@@ -49,7 +56,7 @@ export default function EnrollmentPage() {
     };
 
     loadData();
-  }, []);
+  }, [canViewCourses, canViewEnrollments]);
 
   const courseNameById = useMemo(() => {
     return courses.reduce<Record<string, string>>((acc, course) => {
@@ -73,35 +80,12 @@ export default function EnrollmentPage() {
     router.push(`/enrollment/${enrollmentId}`);
   };
 
-  const handleComplete = async (enrollment: Enrollment) => {
-    const accepted = await confirm({
-      title: "Đánh dấu hoàn thành?",
-      description: "Ghi danh này sẽ được chuyển sang trạng thái hoàn thành. Hãy kiểm tra tiến độ học trước khi tiếp tục.",
-      confirmLabel: "Đánh dấu hoàn thành",
-      tone: "warning",
-    });
-    if (!accepted) return;
-
-    try {
-      setCompletingId(enrollment.id);
-      const updated = await learningService.completeCourse(enrollment.courseId);
-      setEnrollments((prev) => prev.map((item) => item.id === enrollment.id ? { ...item, ...updated } : item));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Không hoàn thành được enrollment.");
-    } finally {
-      setCompletingId("");
-    }
-  };
-
   return (
     <div className="page-container">
       <div className="page-header">
         <div className="header-titles">
           <h1 className="text-headline-lg">Quản lý Ghi danh</h1>
-          <p className="text-body-md text-on-surface-variant mt-2">Hiển thị danh sách ghi danh của tài khoản hiện tại theo API learning-service.</p>
-        </div>
-        <div className="header-actions">
-          <button className="btn btn-secondary action-btn"><Download size={18} /> Export</button>
+          <p className="text-body-md text-on-surface-variant mt-2">Hiển thị danh sách ghi danh trong phạm vi quyền của tài khoản.</p>
         </div>
       </div>
 
@@ -150,7 +134,6 @@ export default function EnrollmentPage() {
                   <td className="actions-cell">
                     <ActionMenu
                       items={[
-                        { label: "Hoàn thành", icon: <CheckCircle2 size={16} />, disabled: enrollment.status === "COMPLETED" || completingId === enrollment.id, onClick: () => handleComplete(enrollment) },
                         { label: "Xem chi tiết", href: `/enrollment/${enrollment.id}`, icon: <Eye size={16} /> },
                       ]}
                     />
@@ -162,7 +145,7 @@ export default function EnrollmentPage() {
         </div>
 
         <div className="table-footer">
-          <span className="text-body-sm text-on-surface-variant">Hiển thị {filteredEnrollments.length} ghi danh. Backend hiện chưa có API admin list toàn hệ thống.</span>
+          <span className="text-body-sm text-on-surface-variant">Hiển thị {filteredEnrollments.length} ghi danh trong phạm vi được cấp.</span>
         </div>
       </div>
     </div>

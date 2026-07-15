@@ -84,6 +84,12 @@ async function getPage<T>(endpoint: string, params?: ListParams): Promise<PageRe
 }
 
 export const courseService = {
+  getCategoryCatalog: (): Promise<CourseCategory[]> => {
+    return apiClient<CourseCategory[]>('/course/api/v1/course-categories/catalog', {
+      method: 'GET',
+    });
+  },
+
   getCategories: (params?: ListParams): Promise<PageResponse<CourseCategory>> => {
     return getPage<CourseCategory>('/course/api/v1/course-categories', params);
   },

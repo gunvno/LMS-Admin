@@ -94,7 +94,7 @@ export default function EditCategoryPage() {
             </div>
             <div className="form-footer border-t pt-6 flex justify-end gap-4">
               <Link href="/categories" className="btn btn-ghost">Hủy</Link>
-              <HasPermission required="CATEGORY_MANAGE">
+              <HasPermission required={["CATEGORY_MANAGE", "COURSE_REVIEW"]} mode="all">
                 <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Đang lưu...' : 'Lưu thay đổi'}</button>
               </HasPermission>
             </div>

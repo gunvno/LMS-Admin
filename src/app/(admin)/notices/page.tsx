@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import {
   Bell,
   CheckCircle2,
@@ -17,6 +17,8 @@ import {
   noticeService,
 } from "@/services/notice.service";
 import { formatDateTime } from "@/lib/date";
+import { useAuth } from "@/contexts/AuthContext";
+import { PERMISSION } from "@/lib/permissions";
 import "./notices.css";
 
 const noticeTypes: NoticeType[] = [
@@ -58,6 +60,9 @@ function statusClass(notice: NoticeDto) {
 }
 
 export default function NoticesPage() {
+  const { hasPermission } = useAuth();
+  const canViewInbox = hasPermission(PERMISSION.NOTICE_VIEW);
+  const canBroadcast = hasPermission(PERMISSION.NOTICE_BROADCAST);
   const [targetType, setTargetType] = useState<NoticeTargetType>("ROLE");
   const [noticeType, setNoticeType] = useState<NoticeType>("SYSTEM");
   const [roleCode, setRoleCode] = useState("STUDENT");
@@ -78,7 +83,9 @@ export default function NoticesPage() {
     [targetType]
   );
 
-  const loadInbox = async () => {
+  const loadInbox = useCallback(async () => {
+    if (!canViewInbox) return;
+
     try {
       setLoadingInbox(true);
       const [page, unread] = await Promise.all([
@@ -92,15 +99,19 @@ export default function NoticesPage() {
     } finally {
       setLoadingInbox(false);
     }
-  };
+  }, [canViewInbox]);
 
   useEffect(() => {
+    if (!canViewInbox) return;
+
     const timer = window.setTimeout(() => void loadInbox(), 0);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [canViewInbox, loadInbox]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!canBroadcast) return;
+
     setError("");
     setMessage("");
 
@@ -145,7 +156,7 @@ export default function NoticesPage() {
       setTitle("");
       setContent("");
       setData("");
-      await loadInbox();
+      if (canViewInbox) await loadInbox();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Không gửi được thông báo.");
     } finally {
@@ -154,6 +165,8 @@ export default function NoticesPage() {
   };
 
   const handleMarkAllRead = async () => {
+    if (!canViewInbox) return;
+
     try {
       await noticeService.markAllRead();
       await loadInbox();
@@ -168,7 +181,11 @@ export default function NoticesPage() {
         <div className="header-titles">
           <h1 className="text-headline-lg">Thông báo</h1>
           <p className="text-body-md text-on-surface-variant mt-2">
-            Soạn thông báo thật qua notice-service và gửi tới học viên, giảng viên hoặc nhóm user cụ thể.
+            {canBroadcast && canViewInbox
+              ? "Theo dõi inbox và gửi thông báo tới học viên, giảng viên hoặc nhóm user cụ thể."
+              : canBroadcast
+                ? "Gửi thông báo tới học viên, giảng viên hoặc nhóm user cụ thể."
+                : "Theo dõi những thông báo được gửi tới tài khoản của bạn."}
           </p>
         </div>
       </div>
@@ -179,8 +196,9 @@ export default function NoticesPage() {
         </div>
       )}
 
-      <div className="notices-grid">
-        <section className="card notice-composer">
+      <div className={`notices-grid ${canBroadcast && canViewInbox ? "" : "single"}`}>
+        {canBroadcast && (
+          <section className="card notice-composer">
           <div className="notice-section-title">
             <Megaphone size={20} />
             <div>
@@ -291,9 +309,11 @@ export default function NoticesPage() {
               {loading ? "Đang gửi..." : "Gửi thông báo"}
             </button>
           </form>
-        </section>
+          </section>
+        )}
 
-        <aside className="card notice-inbox-panel">
+        {canViewInbox && (
+          <aside className="card notice-inbox-panel">
           <div className="notice-section-title split">
             <div className="notice-section-title">
               <Bell size={20} />
@@ -337,6 +357,7 @@ export default function NoticesPage() {
                   <button
                     className="read-inline-btn"
                     onClick={async () => {
+                      if (!canViewInbox) return;
                       await noticeService.markRead(notice.recipientId);
                       await loadInbox();
                     }}
@@ -348,7 +369,8 @@ export default function NoticesPage() {
               </article>
             ))}
           </div>
-        </aside>
+          </aside>
+        )}
       </div>
     </div>
   );

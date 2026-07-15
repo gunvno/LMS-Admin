@@ -36,7 +36,7 @@ export default function CategoryDetailPage() {
       <div className="detail-toolbar">
         <Link href="/categories" className="btn btn-ghost"><ArrowLeft size={18} /> Quay lại</Link>
         {category && (
-          <HasPermission required="CATEGORY_MANAGE">
+          <HasPermission required={["CATEGORY_MANAGE", "COURSE_REVIEW"]} mode="all">
             <Link href={`/categories/${category.id}/edit`} className="btn btn-primary"><Edit size={18} /> Sửa danh mục</Link>
           </HasPermission>
         )}
