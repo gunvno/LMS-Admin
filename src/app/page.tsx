@@ -30,25 +30,11 @@ export default function LoginPage() {
     clearAuthCookies();
 
     try {
-      const response = await authService.login({ username, password });
-      const token = response.token;
-
-      if (!token) {
-        throw new Error("Không nhận được token từ server.");
-      }
-
-      setCookie('auth_token', token, 86400);
-      if (response.refreshToken) {
-        setCookie('refresh_token', response.refreshToken, 604800);
-      }
-      setCookie('auth_user', JSON.stringify({
-        username: response.userName || username,
-        email: response.email || '',
-        fullName: [response.firstName, response.lastName].filter(Boolean).join(' ').trim(),
-      }));
+      await authService.login({ username, password });
 
       const roles = await authorService.getMyRoles();
       if (!canAccessAdmin(roles || [])) {
+        await authService.logout().catch(() => undefined);
         clearAuthCookies();
         throw new Error("Tài khoản của bạn không có quyền truy cập vào trang quản trị.");
       }
@@ -57,6 +43,7 @@ export default function LoginPage() {
       router.push("/dashboard");
       router.refresh();
     } catch (err: unknown) {
+      await authService.logout().catch(() => undefined);
       clearAuthCookies();
       setError(err instanceof Error ? err.message : "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.");
     } finally {

@@ -4,32 +4,13 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { UploadCloud } from "lucide-react";
-import { getCookie } from "@/lib/api-client";
 import { CourseCategory, CourseLevel, CourseStatus, courseService } from "@/services/course.service";
 import { useAuth } from "@/contexts/AuthContext";
 import "./new-course.css";
 
-function decodeJwtSubject(token: string | null) {
-  if (!token) return "";
-  try {
-    const payload = token.split('.')[1];
-    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
-    const json = decodeURIComponent(
-      atob(normalized)
-        .split('')
-        .map(char => `%${(`00${char.charCodeAt(0).toString(16)}`).slice(-2)}`)
-        .join('')
-    );
-    const parsed = JSON.parse(json);
-    return parsed.sub || "";
-  } catch {
-    return "";
-  }
-}
-
 export default function NewCoursePage() {
   const router = useRouter();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const [categories, setCategories] = useState<CourseCategory[]>([]);
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
@@ -71,9 +52,9 @@ export default function NewCoursePage() {
     event.preventDefault();
     setError("");
 
-    const instructorId = decodeJwtSubject(getCookie('auth_token'));
+    const instructorId = user?.id || "";
     if (!instructorId) {
-      setError("Không xác định được instructorId từ phiên đăng nhập. Vui lòng đăng nhập lại.");
+      setError("Không xác định được giảng viên từ phiên đăng nhập. Vui lòng đăng nhập lại.");
       return;
     }
     if (!categoryId) {

@@ -2,8 +2,8 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { clearAuthCookies, getCookie } from '@/lib/api-client';
-import { UserInfo } from '@/services/auth.service';
+import { clearAuthCookies } from '@/lib/api-client';
+import { authService, UserInfo } from '@/services/auth.service';
 import { authorService } from '@/services/author.service';
 
 interface AuthContextType {
@@ -46,24 +46,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const [userRoles, userPerms] = await Promise.all([
+        const [currentUser, userRoles, userPerms] = await Promise.all([
+          authService.getMe(),
           authorService.getMyRoles(),
           authorService.getMyPermissions(),
         ]);
 
         if (!canAccessAdmin(userRoles || [])) {
+          await authService.logout().catch(() => undefined);
           clearAuthCookies();
           router.push('/');
           return;
         }
 
-        const cachedUser = getCookie('auth_user');
-        const userInfo = cachedUser ? JSON.parse(cachedUser) : {};
         setUser({
-          id: userInfo.id || '',
-          username: userInfo.username || '',
-          email: userInfo.email || '',
-          fullName: userInfo.fullName || '',
+          ...currentUser,
           roles: userRoles || [],
         });
         setRoles(userRoles || []);

@@ -1,18 +1,8 @@
-import { apiClient, getCookie } from '@/lib/api-client';
+import { apiClient } from '@/lib/api-client';
 
 export interface LoginRequest {
   username: string;
   password: string;
-}
-
-export interface LoginResponse {
-  token: string;
-  refreshToken?: string;
-  userName?: string;
-  email?: string;
-  firstName?: string;
-  lastName?: string;
-  permissions?: string[];
 }
 
 export interface UserInfo {
@@ -44,40 +34,24 @@ function mapUserInfo(user: BackendUserInfo): UserInfo {
 }
 
 export const authService = {
-  login: (data: LoginRequest): Promise<LoginResponse> => {
-    return apiClient<LoginResponse>('/auth/token', {
+  login: (data: LoginRequest): Promise<void> => {
+    return apiClient<void>('/auth/token', {
       method: 'POST',
       body: JSON.stringify(data),
       requireAuth: false,
     });
   },
 
-  refreshToken: (token: string): Promise<LoginResponse> => {
-    return apiClient<LoginResponse>('/auth/refresh', {
-      method: 'POST',
-      body: JSON.stringify({ token }),
-      requireAuth: false,
-    });
-  },
-
   getMe: async (): Promise<UserInfo> => {
-    if (!getCookie('auth_token')) {
-      throw new Error('Phiên đăng nhập đã hết hạn.');
-    }
-
     const response = await apiClient<BackendUserInfo>('/auth/userinfo', {
       method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      accessTokenBody: true,
     });
     return mapUserInfo(response);
   },
 
   logout: (): Promise<void> => {
-    const token = getCookie('refresh_token') || getCookie('auth_token');
     return apiClient<void>('/auth/logout', {
       method: 'POST',
-      body: JSON.stringify({ token }),
       requireAuth: false,
     });
   },

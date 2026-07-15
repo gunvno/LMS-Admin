@@ -11,7 +11,6 @@ import { useConfirmation } from "@/components/ConfirmationModal";
 import Pagination from "@/components/Pagination";
 import { BadgeCheck, ChevronDown, Edit, Eye, Plus, Search, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { getCookie } from "@/lib/api-client";
 import { Course, CourseCategory, CourseStatus, courseService } from "@/services/course.service";
 import "./courses.css";
 
@@ -27,8 +26,7 @@ function CourseThumbnail({ courseId, name }: { courseId: string; name: string; i
     let active = true;
     const controller = new AbortController();
     const loadImage = async () => {
-      const token = getCookie('auth_token');
-      if (!token || !courseId) return;
+      if (!courseId) return;
 
       try {
         const images = await courseService.getCourseImages(courseId, controller.signal);
@@ -37,8 +35,8 @@ function CourseThumbnail({ courseId, name }: { courseId: string; name: string; i
         const baseUrl = process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:8080';
         const response = await fetch(`${baseUrl}/course/api/v1/courses/${courseId}/images/primary/view`, {
           signal: controller.signal,
+          credentials: 'include',
           headers: {
-            Authorization: `Bearer ${token}`,
             'Accept-Language': 'vi',
           },
         });

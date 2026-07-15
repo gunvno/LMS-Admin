@@ -1,17 +1,5 @@
 const BASE_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:8080';
 
-// Helper to get cookies from document (client-side only)
-export function getCookie(name: string) {
-  if (typeof document === 'undefined') return null;
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) {
-    const rawValue = parts.pop()?.split(';').shift() || '';
-    return rawValue ? decodeURIComponent(rawValue) : null;
-  }
-  return null;
-}
-
 export function setCookie(name: string, value: string, maxAge = 86400) {
   if (typeof document === 'undefined') return;
   document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}`;
@@ -25,47 +13,26 @@ export function clearAuthCookies() {
   document.cookie = 'auth_user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
 }
 
-type RefreshResponse = {
-  token?: string;
-  accessToken?: string;
-  refreshToken?: string;
-};
+let refreshPromise: Promise<boolean> | null = null;
 
-let refreshPromise: Promise<string | null> | null = null;
-
-async function performTokenRefresh(): Promise<string | null> {
-  const refreshToken = getCookie('refresh_token');
-  if (!refreshToken) return null;
-
+async function performSessionRefresh(): Promise<boolean> {
   try {
     const response = await fetch(`${BASE_URL}/auth/refresh`, {
       method: 'POST',
+      credentials: 'include',
       headers: {
-        'Content-Type': 'application/json',
         'Accept-Language': 'vi',
       },
-      body: JSON.stringify({ token: refreshToken }),
     });
-    const payload = await response.json().catch(() => null);
-    const data = (payload?.data ?? payload) as RefreshResponse | null;
-    const accessToken = data?.token || data?.accessToken;
-
-    if (!response.ok || !accessToken) return null;
-
-    setCookie('auth_token', accessToken, 86400);
-    if (data.refreshToken) {
-      setCookie('refresh_token', data.refreshToken, 604800);
-    }
-    setCookie('auth', 'true', 604800);
-    return accessToken;
+    return response.ok;
   } catch {
-    return null;
+    return false;
   }
 }
 
-function refreshAccessToken(): Promise<string | null> {
+function refreshSession(): Promise<boolean> {
   if (!refreshPromise) {
-    refreshPromise = performTokenRefresh().finally(() => {
+    refreshPromise = performSessionRefresh().finally(() => {
       refreshPromise = null;
     });
   }
@@ -83,7 +50,6 @@ function clearSessionAndRedirect() {
 interface FetchOptions extends RequestInit {
   requireAuth?: boolean;
   unwrap?: boolean;
-  accessTokenBody?: boolean;
 }
 
 type BackendResponse<T> = {
@@ -114,7 +80,7 @@ export async function apiClient<T>(
 
 async function executeRequest<T>(
   endpoint: string,
-  { requireAuth = true, unwrap = true, accessTokenBody = false, ...customConfig }: FetchOptions,
+  { requireAuth = true, unwrap = true, ...customConfig }: FetchOptions,
   allowRefresh: boolean
 ): Promise<T> {
   const headers = new Headers(customConfig.headers);
@@ -127,16 +93,9 @@ async function executeRequest<T>(
     headers.set('Accept-Language', 'vi');
   }
 
-  if (requireAuth) {
-    const token = getCookie('auth_token');
-    if (token) {
-      headers.set('Authorization', `Bearer ${token}`);
-    }
-  }
-
   const response = await fetch(`${BASE_URL}${endpoint}`, {
     ...customConfig,
-    body: accessTokenBody ? getCookie('auth_token') : customConfig.body,
+    credentials: 'include',
     headers,
   });
 
@@ -151,9 +110,9 @@ async function executeRequest<T>(
   if (!response.ok) {
     if (response.status === 401 && requireAuth) {
       if (allowRefresh) {
-        const refreshedToken = await refreshAccessToken();
-        if (refreshedToken) {
-          return executeRequest<T>(endpoint, { requireAuth, unwrap, accessTokenBody, ...customConfig }, false);
+        const refreshed = await refreshSession();
+        if (refreshed) {
+          return executeRequest<T>(endpoint, { requireAuth, unwrap, ...customConfig }, false);
         }
       }
       clearSessionAndRedirect();
