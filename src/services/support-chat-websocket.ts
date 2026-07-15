@@ -56,5 +56,6 @@ function websocketUrl() {
   url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
   url.pathname = `${url.pathname.replace(/\/$/, "")}/chat/ws`;
   url.search = "";
+  url.searchParams.set("portal", "ADMIN");
   return url.toString();
 }

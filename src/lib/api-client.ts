@@ -1,9 +1,5 @@
 const BASE_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:8080';
-
-export function setCookie(name: string, value: string, maxAge = 86400) {
-  if (typeof document === 'undefined') return;
-  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}`;
-}
+const CLIENT_PORTAL = 'ADMIN';
 
 export function clearAuthCookies() {
   if (typeof document === 'undefined') return;
@@ -22,6 +18,7 @@ async function performSessionRefresh(): Promise<boolean> {
       credentials: 'include',
       headers: {
         'Accept-Language': 'vi',
+        'X-Client-Portal': CLIENT_PORTAL,
       },
     });
     return response.ok;
@@ -92,6 +89,7 @@ async function executeRequest<T>(
   if (!headers.has('Accept-Language')) {
     headers.set('Accept-Language', 'vi');
   }
+  headers.set('X-Client-Portal', CLIENT_PORTAL);
 
   const response = await fetch(`${BASE_URL}${endpoint}`, {
     ...customConfig,

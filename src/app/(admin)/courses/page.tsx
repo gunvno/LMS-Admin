@@ -38,6 +38,7 @@ function CourseThumbnail({ courseId, name }: { courseId: string; name: string; i
           credentials: 'include',
           headers: {
             'Accept-Language': 'vi',
+            'X-Client-Portal': 'ADMIN',
           },
         });
         if (!active || !response.ok) return;

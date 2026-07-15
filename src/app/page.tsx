@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { clearAuthCookies, setCookie } from "@/lib/api-client";
+import { clearAuthCookies } from "@/lib/api-client";
 import { authService } from "@/services/auth.service";
 import { authorService } from "@/services/author.service";
 import "./login.css";
@@ -39,7 +39,6 @@ export default function LoginPage() {
         throw new Error("Tài khoản của bạn không có quyền truy cập vào trang quản trị.");
       }
 
-      setCookie('auth', 'true', 604800);
       router.push("/dashboard");
       router.refresh();
     } catch (err: unknown) {
