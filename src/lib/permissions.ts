@@ -2,6 +2,7 @@ export const PERMISSION = {
   USER_PROFILE_VIEW: "USER_PROFILE_VIEW",
   COURSE_VIEW: "COURSE_VIEW",
   COURSE_MANAGE: "COURSE_MANAGE",
+  COURSE_SUBMIT_REVIEW: "COURSE_SUBMIT_REVIEW",
   COURSE_REVIEW: "COURSE_REVIEW",
   CATEGORY_VIEW: "CATEGORY_VIEW",
   CATEGORY_MANAGE: "CATEGORY_MANAGE",
@@ -179,7 +180,7 @@ export const ROUTE_PERMISSION_RULES: readonly RoutePermissionRule[] = [
   },
   { matches: exact("/staff/new"), allOf: [PERMISSION.STAFF_CREATE], title: "tạo nhân sự" },
   { matches: prefix("/staff"), allOf: [PERMISSION.STAFF_VIEW], title: "nhân sự" },
-  { matches: prefix("/messages"), title: "tin nhắn" },
+  { matches: prefix("/messages"), title: "tin nhắn hỗ trợ" },
 ];
 
 export function getRoutePermission(pathname: string): RoutePermissionRule | undefined {

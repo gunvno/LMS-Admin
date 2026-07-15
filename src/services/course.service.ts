@@ -9,7 +9,7 @@ export type PageResponse<T> = {
 };
 
 export type CourseCategoryStatus = 'ACTIVE' | 'INACTIVE';
-export type CourseStatus = 'DRAFT' | 'PENDING_REVIEW' | 'PUBLISHED' | 'REJECTED' | 'ARCHIVED';
+export type CourseStatus = 'INSTRUCTOR_DRAFT' | 'DRAFT' | 'PENDING_REVIEW' | 'PUBLISHED' | 'REJECTED' | 'ARCHIVED';
 export type CourseLevel = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
 
 export type CourseCategory = {

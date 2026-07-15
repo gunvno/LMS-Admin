@@ -9,6 +9,7 @@ import Link from "next/link";
 import { CourseCategory, CourseLevel, CourseStatus, courseService } from "@/services/course.service";
 import { useAuth } from "@/contexts/AuthContext";
 import { PERMISSION } from "@/lib/permissions";
+import { getCourseStatusDescription, getCourseStatusLabel } from "@/lib/course-status";
 import "../../new/new-course.css";
 
 export default function EditCoursePage() {
@@ -169,12 +170,17 @@ export default function EditCoursePage() {
             <div className="card p-6">
               <h3 className="text-headline-sm mb-4">Trạng thái</h3>
               {canReview ? <select className="form-input" value={status} onChange={(e) => setStatus(e.target.value as CourseStatus)} disabled={saving}>
-                <option value="DRAFT">Draft</option>
-                <option value="PENDING_REVIEW">Pending Review</option>
-                <option value="PUBLISHED">Published</option>
-                <option value="REJECTED">Rejected</option>
-                <option value="ARCHIVED">Archived</option>
-              </select> : <><strong>{status}</strong><p className="text-body-sm text-outline mt-2">Bạn chưa có quyền thay đổi trạng thái xuất bản.</p></>}
+                <option value="INSTRUCTOR_DRAFT" disabled>Bản nháp giảng viên (riêng tư)</option>
+                <option value="DRAFT">Bản nháp quản trị</option>
+                <option value="PENDING_REVIEW">Chờ duyệt</option>
+                <option value="PUBLISHED">Đã xuất bản</option>
+                <option value="REJECTED">Bị từ chối</option>
+                <option value="ARCHIVED">Đã lưu trữ</option>
+              </select> : <strong>{getCourseStatusLabel(status)}</strong>}
+              <p className="text-body-sm text-outline mt-2">{getCourseStatusDescription(status)}</p>
+              {!canReview && status === "INSTRUCTOR_DRAFT" && (
+                <p className="text-body-sm text-outline mt-2">Sau khi hoàn thiện, dùng nút Gửi duyệt ở trang chi tiết. Quản trị viên chỉ nhận khóa học khi trạng thái chuyển sang Chờ duyệt.</p>
+              )}
             </div>
           </div>
         </div>

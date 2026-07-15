@@ -12,6 +12,12 @@ import Pagination from "@/components/Pagination";
 import { BadgeCheck, ChevronDown, Edit, Eye, Plus, Search, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Course, CourseCategory, CourseStatus, courseService } from "@/services/course.service";
+import { PERMISSION } from "@/lib/permissions";
+import {
+  getCourseStatusClass,
+  getCourseStatusDescription,
+  getCourseStatusLabel,
+} from "@/lib/course-status";
 import "./courses.css";
 
 function shouldIgnoreRowClick(target: EventTarget | null) {
@@ -66,23 +72,6 @@ function CourseThumbnail({ courseId, name, canView }: { courseId: string; name: 
   return <img src={src} alt={name} className="course-thumbnail" />;
 }
 
-function statusClass(status: CourseStatus) {
-  if (status === 'PUBLISHED') return 'status-success-light';
-  if (status === 'DRAFT' || status === 'PENDING_REVIEW') return 'status-pending-gray';
-  return 'status-error-light';
-}
-
-function formatStatus(status: CourseStatus) {
-  const labels: Record<CourseStatus, string> = {
-    DRAFT: 'Draft',
-    PENDING_REVIEW: 'Pending Review',
-    PUBLISHED: 'Published',
-    REJECTED: 'Rejected',
-    ARCHIVED: 'Archived',
-  };
-  return labels[status] || status;
-}
-
 function getShortId(id: string) {
   if (!id) return '-';
   return `#${id.slice(0, 8)}`;
@@ -97,10 +86,10 @@ export default function CoursesPage() {
   const { confirm } = useConfirmation();
   const router = useRouter();
   const { hasPermission } = useAuth();
-  const canViewImages = hasPermission('IMAGE_VIEW');
-  const canViewCategories = hasPermission('CATEGORY_VIEW');
-  const canManageCourses = hasPermission('COURSE_MANAGE');
-  const canReviewCourses = hasPermission('COURSE_REVIEW');
+  const canViewImages = hasPermission(PERMISSION.IMAGE_VIEW);
+  const canViewCategories = hasPermission(PERMISSION.CATEGORY_VIEW);
+  const canManageCourses = hasPermission(PERMISSION.COURSE_MANAGE);
+  const canReviewCourses = hasPermission(PERMISSION.COURSE_REVIEW);
   const [courses, setCourses] = useState<Course[]>([]);
   const [categories, setCategories] = useState<CourseCategory[]>([]);
   const [totalElements, setTotalElements] = useState(0);
@@ -238,11 +227,12 @@ export default function CoursesPage() {
             onChange={(e) => setStatus(e.target.value as "ALL" | CourseStatus)}
           >
             <option value="ALL">Tất cả trạng thái</option>
-            <option value="DRAFT">Draft</option>
-            <option value="PENDING_REVIEW">Pending Review</option>
-            <option value="PUBLISHED">Published</option>
-            <option value="REJECTED">Rejected</option>
-            <option value="ARCHIVED">Archived</option>
+            {!canReviewCourses && <option value="INSTRUCTOR_DRAFT">Bản nháp giảng viên</option>}
+            <option value="DRAFT">Bản nháp quản trị</option>
+            <option value="PENDING_REVIEW">Chờ duyệt</option>
+            <option value="PUBLISHED">Đã xuất bản</option>
+            <option value="REJECTED">Bị từ chối</option>
+            <option value="ARCHIVED">Đã lưu trữ</option>
           </select>
           <ChevronDown size={16} className="dropdown-icon" />
         </div>
@@ -297,7 +287,15 @@ export default function CoursesPage() {
                   <td className="text-body-md text-on-surface-variant">{course.level || '-'}</td>
                   <td className="text-body-md">{formatPrice(course.price)}</td>
                   <td>
-                    <span className={`status-badge ${statusClass(course.status)}`}>{formatStatus(course.status)}</span>
+                    <span
+                      className={`status-badge ${getCourseStatusClass(course.status)}`}
+                      title={getCourseStatusDescription(course.status)}
+                    >
+                      {getCourseStatusLabel(course.status)}
+                    </span>
+                    {course.status === "INSTRUCTOR_DRAFT" && (
+                      <span className="cell-subtitle">Riêng tư · chưa gửi quản trị viên</span>
+                    )}
                   </td>
                   <td className="actions-cell">
                     <ActionMenu

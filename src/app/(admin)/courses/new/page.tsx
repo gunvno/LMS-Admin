@@ -7,13 +7,55 @@ import { UploadCloud } from "lucide-react";
 import { CourseCategory, CourseLevel, CourseStatus, courseService } from "@/services/course.service";
 import { useAuth } from "@/contexts/AuthContext";
 import { PERMISSION } from "@/lib/permissions";
+import {
+  clearCourseLocalDraft,
+  loadCourseLocalDraft,
+  saveCourseLocalDraft,
+  type CourseLocalDraft,
+  type DraftStorage,
+} from "@/lib/course-local-draft";
+import {
+  canUseCourseCreationAction,
+  getServerCourseDraftStatus,
+  type CourseCreationAction,
+} from "@/lib/course-creation-policy";
 import "./new-course.css";
+
+type CreationWarning = "image-upload" | "submit-review" | "post-create";
+
+function getBrowserDraftStorage(): DraftStorage | null {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
 
 export default function NewCoursePage() {
   const router = useRouter();
   const { hasPermission, user } = useAuth();
+  const canManageCourses = hasPermission(PERMISSION.COURSE_MANAGE);
+  const canSubmitReview = hasPermission(PERMISSION.COURSE_SUBMIT_REVIEW);
   const canReview = hasPermission(PERMISSION.COURSE_REVIEW);
   const canManageImages = hasPermission(PERMISSION.IMAGE_MANAGE);
+  const canCreateServerDraft = canUseCourseCreationAction(
+    "server-draft",
+    canManageCourses,
+    canSubmitReview,
+    canReview,
+  );
+  const canCreateDraftAndSubmit = canUseCourseCreationAction(
+    "submit-review",
+    canManageCourses,
+    canSubmitReview,
+    canReview,
+  );
+  const canPublishDirectly = canUseCourseCreationAction(
+    "publish",
+    canManageCourses,
+    canSubmitReview,
+    canReview,
+  );
   const [categories, setCategories] = useState<CourseCategory[]>([]);
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
@@ -21,20 +63,49 @@ export default function NewCoursePage() {
   const [description, setDescription] = useState("");
   const [level, setLevel] = useState<CourseLevel>("BEGINNER");
   const [price, setPrice] = useState(0);
-  const [status, setStatus] = useState<CourseStatus>("DRAFT");
   const [thumbnail, setThumbnail] = useState<File | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [activeAction, setActiveAction] = useState<CourseCreationAction | null>(null);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [error, setError] = useState("");
+  const [localDraftMessage, setLocalDraftMessage] = useState("");
+  const [hasLocalDraft, setHasLocalDraft] = useState(false);
+  const loading = activeAction !== null;
 
   useEffect(() => {
     const loadCategories = async () => {
       try {
         setLoadingCategories(true);
-        const catalog = await courseService.getCategoryCatalog();
-        setCategories(catalog || []);
-        if (catalog?.[0]) {
-          setCategoryId(catalog[0].id);
+        const catalog = (await courseService.getCategoryCatalog()) || [];
+        setCategories(catalog);
+
+        const firstCategoryId = catalog?.[0]?.id || "";
+        const storage = getBrowserDraftStorage();
+        const localDraft = storage && user?.id
+          ? loadCourseLocalDraft(storage, user.id)
+          : { status: "empty" as const };
+
+        if (localDraft.status === "found") {
+          const restored = localDraft.draft;
+          const categoryStillExists = catalog.some((category) => category.id === restored.categoryId);
+          setName(restored.name);
+          setCode(restored.code);
+          setCategoryId(categoryStillExists ? restored.categoryId : firstCategoryId);
+          setDescription(restored.description);
+          setLevel(restored.level);
+          setPrice(restored.price);
+          setHasLocalDraft(true);
+          setLocalDraftMessage(categoryStillExists || !restored.categoryId
+            ? "Đã khôi phục bản lưu tạm trên trình duyệt. Thumbnail không được lưu, vui lòng chọn lại ảnh."
+            : "Đã khôi phục bản lưu tạm; danh mục cũ không còn hợp lệ nên đã chọn danh mục hiện có. Thumbnail cần được chọn lại.");
+        } else {
+          setCategoryId(firstCategoryId);
+          if (localDraft.status === "expired") {
+            setLocalDraftMessage("Bản lưu tạm đã quá 7 ngày và được xóa tự động.");
+          } else if (localDraft.status === "invalid") {
+            setLocalDraftMessage("Bản lưu tạm không hợp lệ và đã được xóa.");
+          } else if (localDraft.status === "unavailable") {
+            setLocalDraftMessage("Trình duyệt đang chặn bộ nhớ cục bộ nên không thể khôi phục bản lưu tạm.");
+          }
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Không tải được danh mục.");
@@ -44,16 +115,83 @@ export default function NewCoursePage() {
     };
 
     loadCategories();
-  }, []);
+  }, [user?.id]);
 
   const thumbnailPreview = useMemo(() => {
     if (!thumbnail) return "";
     return URL.createObjectURL(thumbnail);
   }, [thumbnail]);
 
+  useEffect(() => () => {
+    if (thumbnailPreview) URL.revokeObjectURL(thumbnailPreview);
+  }, [thumbnailPreview]);
+
+  const getDraftData = (): CourseLocalDraft => ({
+    name,
+    code,
+    categoryId,
+    description,
+    level,
+    price,
+  });
+
+  const handleSaveLocalDraft = () => {
+    setError("");
+    const storage = getBrowserDraftStorage();
+    if (!storage || !user?.id || !saveCourseLocalDraft(storage, user.id, getDraftData())) {
+      setError("Không thể lưu tạm trên trình duyệt. Hãy kiểm tra chế độ riêng tư hoặc quyền lưu trữ của trình duyệt.");
+      return;
+    }
+    setHasLocalDraft(true);
+    setLocalDraftMessage("Đã lưu tạm trên trình duyệt, không gọi API và không tạo bản ghi trong CSDL. Thumbnail không được lưu, bạn cần chọn lại ảnh khi quay lại.");
+  };
+
+  const handleClearLocalDraft = () => {
+    setError("");
+    const storage = getBrowserDraftStorage();
+    if (!storage || !user?.id || !clearCourseLocalDraft(storage, user.id)) {
+      setError("Không thể xóa bản lưu tạm khỏi trình duyệt.");
+      return;
+    }
+    setHasLocalDraft(false);
+    setLocalDraftMessage("Đã xóa bản lưu tạm khỏi trình duyệt. Dữ liệu đang nhập trên màn hình vẫn được giữ lại.");
+  };
+
+  const routeToCreatedCourse = (
+    courseId: string,
+    courseStatus: CourseStatus,
+    intent: CourseCreationAction,
+    warning?: CreationWarning,
+    localDraftCleanupFailed = false,
+  ) => {
+    const query = new URLSearchParams({
+      creationIntent: intent,
+      creationStatus: courseStatus,
+    });
+    if (warning) query.set("creationWarning", warning);
+    if (localDraftCleanupFailed) query.set("localDraftCleanup", "failed");
+    router.replace(`/courses/${courseId}?${query.toString()}`);
+    router.refresh();
+  };
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setError("");
+
+    const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
+    const requestedAction = submitter?.value || "server-draft";
+    const action: CourseCreationAction = requestedAction === "submit-review" || requestedAction === "publish"
+      ? requestedAction
+      : "server-draft";
+
+    if (!canUseCourseCreationAction(action, canManageCourses, canSubmitReview, canReview)) {
+      setError(action === "publish"
+        ? "Bạn cần cả quyền quản lý và quyền duyệt để xuất bản trực tiếp khóa học."
+        : action === "submit-review"
+          ? "Bạn chưa có quyền gửi duyệt khóa học."
+          : "Bạn chưa có quyền tạo bản nháp khóa học trên hệ thống.");
+      return;
+    }
 
     const instructorId = user?.id || "";
     if (!instructorId) {
@@ -65,8 +203,11 @@ export default function NewCoursePage() {
       return;
     }
 
+    let createdCourseId = "";
+    let createdCourseStatus: CourseStatus | null = null;
+    let localDraftCleanupFailed = false;
     try {
-      setLoading(true);
+      setActiveAction(action);
       const createdCourse = await courseService.createCourse({
         categoryId,
         instructorId,
@@ -75,19 +216,47 @@ export default function NewCoursePage() {
         description,
         level,
         price: price || undefined,
-        status: canReview ? status : "DRAFT",
+        status: action === "publish"
+          ? "PUBLISHED"
+          : getServerCourseDraftStatus(canReview),
       });
+      createdCourseId = createdCourse.id;
+      createdCourseStatus = createdCourse.status;
+
+      const storage = getBrowserDraftStorage();
+      localDraftCleanupFailed = hasLocalDraft
+        && (!storage || !clearCourseLocalDraft(storage, instructorId));
+      setHasLocalDraft(false);
 
       if (thumbnail && canManageImages) {
-        await courseService.uploadCourseImage(createdCourse.id, thumbnail);
+        try {
+          await courseService.uploadCourseImage(createdCourse.id, thumbnail);
+        } catch {
+          routeToCreatedCourse(createdCourse.id, createdCourse.status, action, "image-upload", localDraftCleanupFailed);
+          return;
+        }
       }
 
-      router.replace('/courses');
-      router.refresh();
+      if (action === "submit-review") {
+        try {
+          const submittedCourse = await courseService.submitForReview(createdCourse.id);
+          routeToCreatedCourse(submittedCourse.id, submittedCourse.status, action, undefined, localDraftCleanupFailed);
+          return;
+        } catch {
+          routeToCreatedCourse(createdCourse.id, createdCourse.status, action, "submit-review", localDraftCleanupFailed);
+          return;
+        }
+      }
+
+      routeToCreatedCourse(createdCourse.id, createdCourse.status, action, undefined, localDraftCleanupFailed);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Không tạo được khóa học.");
+      if (createdCourseId && createdCourseStatus) {
+        routeToCreatedCourse(createdCourseId, createdCourseStatus, action, "post-create", localDraftCleanupFailed);
+      } else {
+        setError(err instanceof Error ? err.message : "Không tạo được khóa học.");
+      }
     } finally {
-      setLoading(false);
+      setActiveAction(null);
     }
   };
 
@@ -97,14 +266,15 @@ export default function NewCoursePage() {
         <div className="header-titles">
           <h1 className="text-headline-lg">Thêm Khóa học mới</h1>
           <p className="text-body-md text-on-surface-variant mt-2">
-            {canReview ? "Tạo nội dung và thiết lập trạng thái khóa học." : "Tạo bản nháp khóa học. Sau khi hoàn chỉnh, gửi người có quyền duyệt để xuất bản."}
+            {canReview
+              ? "Lưu tạm trên trình duyệt, tạo bản nháp quản trị, gửi duyệt hoặc xuất bản trực tiếp."
+              : canSubmitReview
+                ? "Bạn có thể lưu tạm không tạo dữ liệu, tạo bản nháp giảng viên riêng tư hoặc tạo và gửi duyệt ngay."
+                : "Bạn có thể lưu tạm không tạo dữ liệu hoặc tạo bản nháp giảng viên riêng tư trên hệ thống."}
           </p>
         </div>
         <div className="header-actions">
           <button type="button" className="btn btn-ghost" onClick={() => router.push('/courses')} disabled={loading}>Hủy</button>
-          <button type="submit" className="btn btn-primary" disabled={loading || loadingCategories}>
-            {loading ? 'Đang lưu...' : 'Lưu Khóa học'}
-          </button>
         </div>
       </div>
 
@@ -237,24 +407,53 @@ export default function NewCoursePage() {
           </div>}
 
           <div className="card p-6">
-            <h3 className="text-headline-sm mb-4">Trạng thái & Cài đặt</h3>
-            <div className="status-options flex flex-col gap-4 mb-6">
-              {canReview && <label className={`status-card ${status === 'PUBLISHED' ? 'active' : ''}`}>
-                <input type="radio" name="status" checked={status === 'PUBLISHED'} onChange={() => setStatus('PUBLISHED')} className="custom-radio" disabled={loading} />
-                <div className="status-info">
-                  <span className="text-label-md">Công khai (Published)</span>
-                  <span className="text-body-sm text-outline">Khóa học hiển thị với tất cả học viên.</span>
-                </div>
-              </label>}
-              <label className={`status-card ${status === 'DRAFT' ? 'active' : ''}`}>
-                <input type="radio" name="status" checked={status === 'DRAFT'} onChange={() => setStatus('DRAFT')} className="custom-radio" disabled={loading} />
-                <div className="status-info">
-                  <span className="text-label-md">Bản nháp (Draft)</span>
-                  <span className="text-body-sm text-outline">Ẩn khóa học, chỉ admin/giảng viên mới thấy.</span>
-                </div>
-              </label>
-              {!canReview && <p className="text-body-sm text-outline">Bạn chỉ có thể lưu bản nháp tại đây. Nút gửi duyệt xuất hiện trong trang chi tiết khóa học.</p>}
+            <h3 className="text-headline-sm mb-4">Lưu tạm trên trình duyệt</h3>
+            <p className="text-body-sm text-outline local-draft-description">
+              Không gọi API, không tạo bản ghi trong CSDL và chỉ áp dụng cho tài khoản đang đăng nhập trên trình duyệt này. Thumbnail không được lưu và phải chọn lại.
+            </p>
+            {localDraftMessage && <div className="local-draft-message">{localDraftMessage}</div>}
+            <div className="local-draft-actions">
+              <button type="button" className="btn btn-ghost" onClick={handleSaveLocalDraft} disabled={loading}>
+                Chỉ lưu tạm trên trình duyệt
+              </button>
+              {hasLocalDraft && (
+                <button type="button" className="btn btn-ghost" onClick={handleClearLocalDraft} disabled={loading}>
+                  Xóa bản lưu tạm
+                </button>
+              )}
             </div>
+          </div>
+
+          <div className="card p-6 mt-4">
+            <h3 className="text-headline-sm mb-4">Tạo khóa học trên hệ thống</h3>
+            <p className="text-body-sm text-outline server-draft-description">
+              Các lựa chọn dưới đây đều tạo bản ghi trong CSDL. Nếu bạn không có quyền duyệt, bản ghi được lưu ở trạng thái Bản nháp giảng viên và chỉ vào danh sách của quản trị viên sau khi gửi duyệt thành công.
+            </p>
+            {(canCreateServerDraft || canCreateDraftAndSubmit || canPublishDirectly) && (
+              <div className="course-create-actions">
+                {canCreateServerDraft && (
+                  <button type="submit" name="creationAction" value="server-draft" className="btn btn-secondary" disabled={loading || loadingCategories}>
+                    {activeAction === "server-draft" ? "Đang tạo bản nháp..." : canReview ? "Tạo bản nháp quản trị (DB)" : "Tạo bản nháp giảng viên (DB)"}
+                  </button>
+                )}
+                {canCreateDraftAndSubmit && (
+                  <button type="submit" name="creationAction" value="submit-review" className="btn btn-primary" disabled={loading || loadingCategories}>
+                    {activeAction === "submit-review" ? "Đang tạo & gửi duyệt..." : "Tạo khóa học & gửi duyệt"}
+                  </button>
+                )}
+                {canPublishDirectly && (
+                  <button type="submit" name="creationAction" value="publish" className="btn btn-primary" disabled={loading || loadingCategories}>
+                    {activeAction === "publish" ? "Đang tạo & xuất bản..." : "Tạo & xuất bản ngay"}
+                  </button>
+                )}
+              </div>
+            )}
+            <p className="text-body-sm text-outline action-permission-note">
+              {canSubmitReview
+                ? "Nút gửi duyệt hiển thị vì bạn có quyền COURSE_SUBMIT_REVIEW. Khóa học chỉ chuyển sang Chờ duyệt sau khi thao tác này thành công."
+                : "Bạn chưa có quyền COURSE_SUBMIT_REVIEW nên nút gửi duyệt không hiển thị."}
+              {canReview && " Người có quyền duyệt và quản lý khóa học có thể xuất bản trực tiếp."}
+            </p>
           </div>
         </div>
       </div>

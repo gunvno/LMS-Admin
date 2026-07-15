@@ -9,14 +9,8 @@ import {
   type SupportConversation,
   type SupportMessage,
 } from "@/services/support-chat.service";
+import { mergeSupportMessage } from "@/lib/support-chat-message";
 import "./messages.css";
-
-function mergeMessage(messages: SupportMessage[], incoming: SupportMessage) {
-  const next = messages.some((message) => message.id === incoming.id)
-    ? messages.map((message) => message.id === incoming.id ? incoming : message)
-    : [...messages, incoming];
-  return next.sort((left, right) => String(left.createdAt || "").localeCompare(String(right.createdAt || "")));
-}
 
 function formatTime(value?: string) {
   if (!value) return "";
@@ -63,7 +57,7 @@ export default function InstructorMessagesPage() {
     const disconnect = connectSupportChat(
       selectedId,
       (event) => {
-        if (event.message) setMessages((current) => mergeMessage(current, event.message!));
+        if (event.message) setMessages((current) => mergeSupportMessage(current, event.message!));
         void supportChatService.markRead(selectedId).catch(() => undefined);
         void loadConversations().catch(() => undefined);
       },
@@ -87,7 +81,7 @@ export default function InstructorMessagesPage() {
     setSending(true);
     try {
       const message = await supportChatService.sendMessage(selectedId, content);
-      setMessages((current) => mergeMessage(current, message));
+      setMessages((current) => mergeSupportMessage(current, message));
       await loadConversations();
     } catch (err) {
       setInput(content);

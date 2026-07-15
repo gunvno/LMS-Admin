@@ -116,3 +116,46 @@
 }
 
 .mt-4 { margin-top: 16px; }
+
+.local-draft-description,
+.server-draft-description,
+.action-permission-note {
+  line-height: 1.55;
+}
+
+.local-draft-message {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border: 1px solid #bfdbfe;
+  border-radius: var(--rounded);
+  background: #eff6ff;
+  color: #1e40af;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.local-draft-actions,
+.course-create-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.local-draft-actions .btn,
+.course-create-actions .btn {
+  width: 100%;
+  white-space: normal;
+  text-align: center;
+}
+
+.action-permission-note {
+  margin-top: 14px;
+}
+
+@media (max-width: 900px) {
+  .course-form-grid,
+  .form-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}

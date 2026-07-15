@@ -14,6 +14,7 @@ const { outputText } = ts.transpileModule(permissionSource, {
   },
 });
 const {
+  PERMISSION,
   canAccessAdminRoute,
   getRoutePermission,
   hasRequiredPermission,
@@ -115,6 +116,7 @@ test("course creation follows COURSE_MANAGE and uses the public category catalog
 
   assert.equal(satisfiesRequirement(["COURSE_VIEW"], createCourse), false);
   assert.equal(satisfiesRequirement(["COURSE_MANAGE"], createCourse), true);
+  assert.equal(PERMISSION.COURSE_SUBMIT_REVIEW, "COURSE_SUBMIT_REVIEW");
 });
 
 test("admin routes are denied by default until a policy is declared", () => {
@@ -122,4 +124,14 @@ test("admin routes are denied by default until a policy is declared", () => {
   assert.equal(canAccessAdminRoute([], "/messages"), true);
   assert.equal(canAccessAdminRoute(["COURSE_VIEW"], "/courses"), true);
   assert.equal(canAccessAdminRoute(["COURSE_VIEW"], "/future-admin-page"), false);
+});
+
+test("support chat is declared permissionless for authenticated portal users", () => {
+  const messages = getRoutePermission("/messages");
+
+  assert.equal(messages?.title, "tin nhắn hỗ trợ");
+  assert.equal(messages?.allOf, undefined);
+  assert.equal(messages?.anyOf, undefined);
+  assert.equal(satisfiesRequirement([], messages), true);
+  assert.equal(canAccessAdminRoute([], "/messages"), true);
 });

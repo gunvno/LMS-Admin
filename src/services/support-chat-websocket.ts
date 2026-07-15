@@ -1,4 +1,5 @@
 import { Client, type IMessage, type StompSubscription } from "@stomp/stompjs";
+import { normalizeSupportMessage } from "@/lib/support-chat-message";
 import type { SupportMessage } from "@/services/support-chat.service";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL || "http://localhost:8080";
@@ -45,7 +46,12 @@ export function connectSupportChat(
 function handleEvent(frame: IMessage, onEvent: (event: SupportChatEvent) => void) {
   try {
     const event = JSON.parse(frame.body) as SupportChatEvent;
-    if (event?.conversationId && event?.eventType) onEvent(event);
+    if (event?.conversationId && event?.eventType) {
+      onEvent({
+        ...event,
+        message: event.message ? normalizeSupportMessage(event.message) : undefined,
+      });
+    }
   } catch {
     // Ignore malformed frames without closing the socket.
   }

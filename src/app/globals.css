@@ -1111,6 +1111,11 @@ textarea.form-input {
   color: #344054;
 }
 
+.status-instructor-draft {
+  background: #fffaeb;
+  color: #b54708;
+}
+
 .status-error-light,
 .badge-error {
   background: #fef3f2;
