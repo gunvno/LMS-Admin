@@ -13,5 +13,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)"],
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|firebase-messaging-sw\\.js|sitemap.xml|robots.txt).*)"],
 };

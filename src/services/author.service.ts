@@ -10,6 +10,15 @@ export type StaffAccount = {
   permissionCodes?: string[];
 };
 
+export type NoticeRecipient = {
+  userId: string;
+  username: string;
+  email: string;
+  fullName?: string;
+  status?: string;
+  roleCodes: string[];
+};
+
 export type Permission = {
   id?: string;
   code: string;
@@ -47,6 +56,12 @@ export const authorService = {
 
   getStaffAccounts: (): Promise<StaffAccount[]> => {
     return apiClient<StaffAccount[]>('/author/api/v1/permissions/staff', {
+      method: 'GET',
+    });
+  },
+
+  getNoticeRecipients: (): Promise<NoticeRecipient[]> => {
+    return apiClient<NoticeRecipient[]>('/author/api/v1/users/notice-recipients', {
       method: 'GET',
     });
   },

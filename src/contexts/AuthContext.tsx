@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { clearAuthCookies } from '@/lib/api-client';
 import { authService, UserInfo } from '@/services/auth.service';
 import { authorService } from '@/services/author.service';
+import { deactivateCurrentPushInstallation } from '@/lib/push-device';
 import {
   hasRequiredPermission,
   normalizePermissions,
@@ -17,6 +18,7 @@ interface AuthContextType {
   roles: string[];
   permissions: string[];
   hasPermission: (requiredPerm: PermissionCode | readonly PermissionCode[], mode?: PermissionMode) => boolean;
+  logout: () => Promise<void>;
   loading: boolean;
 }
 
@@ -25,6 +27,7 @@ const AuthContext = createContext<AuthContextType>({
   roles: [],
   permissions: [],
   hasPermission: () => false,
+  logout: async () => undefined,
   loading: true,
 });
 
@@ -44,6 +47,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [authorized, setAuthorized] = useState(false);
 
+  const logout = useCallback(async () => {
+    await deactivateCurrentPushInstallation().catch(() => undefined);
+    await authService.logout().catch(() => undefined);
+    clearAuthCookies();
+    setAuthorized(false);
+    setUser(null);
+    setRoles([]);
+    setPermissions([]);
+    router.replace('/');
+  }, [router]);
+
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -54,9 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ]);
 
         if (!canAccessAdmin(userRoles || [])) {
-          await authService.logout().catch(() => undefined);
-          clearAuthCookies();
-          router.replace('/');
+          await logout();
           return;
         }
 
@@ -69,6 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setAuthorized(true);
       } catch {
         setAuthorized(false);
+        await deactivateCurrentPushInstallation().catch(() => undefined);
         clearAuthCookies();
         router.replace('/');
       } finally {
@@ -77,7 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     fetchUserData();
-  }, [router]);
+  }, [logout, router]);
 
   useEffect(() => {
     if (!authorized) return;
@@ -91,10 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ]);
         if (!active) return;
         if (!canAccessAdmin(nextRoles || [])) {
-          setAuthorized(false);
-          await authService.logout().catch(() => undefined);
-          clearAuthCookies();
-          router.replace('/');
+          await logout();
           return;
         }
         setRoles(nextRoles || []);
@@ -113,7 +123,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       window.clearInterval(refreshInterval);
       window.removeEventListener('focus', refreshOnFocus);
     };
-  }, [authorized, router]);
+  }, [authorized, logout]);
 
   const hasPermission = useCallback(
     (requiredPerm: PermissionCode | readonly PermissionCode[], mode: PermissionMode = 'any') =>
@@ -122,7 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <AuthContext.Provider value={{ user, roles, permissions, hasPermission, loading }}>
+    <AuthContext.Provider value={{ user, roles, permissions, hasPermission, logout, loading }}>
       {!loading && authorized
         ? children
         : <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center' }}>{loading ? 'Đang tải không gian làm việc...' : 'Đang chuyển đến trang đăng nhập...'}</div>}

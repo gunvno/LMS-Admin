@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { clearAuthCookies } from "@/lib/api-client";
 import {
   LayoutDashboard,
   FolderOpen,
@@ -56,9 +55,8 @@ const navItems: readonly NavItem[] = [
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { user, roles, permissions } = useAuth();
+  const { user, roles, permissions, logout } = useAuth();
   const visibleNavItems = navItems.filter((item) => satisfiesRequirement(permissions, item));
   const displayName = user?.fullName || user?.username || "Tài khoản";
   const normalizedRoles = roles.map((role) => role.replace(/^ROLE_/, "").toUpperCase());
@@ -81,13 +79,7 @@ export default function Sidebar() {
   }, [mobileOpen]);
 
   const handleLogout = async () => {
-    try {
-      await import("@/services/auth.service").then((m) => m.authService.logout());
-    } catch {
-      console.warn("Logout API failed");
-    }
-    clearAuthCookies();
-    router.push("/");
+    await logout();
   };
 
   return (
